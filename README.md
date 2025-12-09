@@ -16,3 +16,7 @@ API robusta para processamento de arquivos CSV/XLSX e geração de relatórios a
 1. **Clone o repositório:**
    ```bash
    git clone [https://github.com/IuryDevJava/api-hanami.git](https://github.com/IuryDevJava/api-hanami.git)
+   
+2. **Executar a aplicação**
+   ``` 
+   ./mvnw spring-boot:run
