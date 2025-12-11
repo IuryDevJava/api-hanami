@@ -40,7 +40,7 @@ public class ReadFileService {
         } else if (fileName != null && fileName.endsWith(".xlsx")) {
             return readExcel(file);
         } else {
-            throw new IllegalArgumentException("Invalid format. Please upload .csv or .xlsx");
+            throw new IllegalArgumentException("Formato inválido. Por favor, envie um arquivo .csv ou .xlsx");
         }
     }
 
@@ -62,7 +62,7 @@ public class ReadFileService {
             }
 
         } catch (CsvValidationException e) {
-            throw new IOException("Error validating CSV structure", e);
+            throw new IOException("Erro ao validar a estrutura do CSV", e);
         }
 
         return salesList;
@@ -101,7 +101,7 @@ public class ReadFileService {
 
     private void validateHeaders(String[] headers) {
         if (headers == null || headers.length < EXPECTED_HEADERS.length) {
-            throw new IllegalArgumentException("Invalid file: Missing required columns.");
+            throw new IllegalArgumentException("Arquivo inválido: Colunas obrigatórias ausentes.");
         }
 
         for (int i = 0; i < EXPECTED_HEADERS.length; i++) {
@@ -110,7 +110,7 @@ public class ReadFileService {
 
             if (!fileHeader.equalsIgnoreCase(expectedHeader)) {
                 throw new IllegalArgumentException(
-                        String.format("Header Error: Expected '%s', found '%s' at column %d.",
+                        String.format("Erro de Cabeçalho: Esperado '%s', encontrado '%s' na coluna %d.",
                                 expectedHeader, fileHeader, i + 1)
                 );
             }
@@ -153,7 +153,7 @@ public class ReadFileService {
                     if (venda.getCliente() == null) venda.setCliente(new Cliente());
                     venda.getCliente().setIdade(age);
                 } catch (NumberFormatException e) {
-                    System.err.println("Warning: Invalid age format for ID " + venda.getIdTransacao());
+                    System.err.println("Aviso: Formato de idade inválido para o ID " + venda.getIdTransacao());
                 }
             }
 
@@ -162,33 +162,32 @@ public class ReadFileService {
                 try {
                     venda.setCanalVenda(CanalVenda.valueOf(normalizedChannel));
                 } catch (IllegalArgumentException e) {
-                    System.err.println("Warning: Unknown sales channel: " + normalizedChannel);
-                    // Optional: venda.setCanalVenda(CanalVenda.UNKNOWN);
+                    System.err.println("Aviso: Canal de venda desconhecido: " + normalizedChannel);
                 }
             }
 
             return venda;
 
         } catch (Exception e) {
-            String idRef = (data != null && data.length > 0) ? data[0] : "Unknown";
-            System.err.println("Critical error parsing row ID " + idRef + ": " + e.getMessage());
+            String idRef = (data != null && data.length > 0) ? data[0] : "Desconhecido";
+            System.err.println("Erro crítico ao processar linha ID " + idRef + ": " + e.getMessage());
             return null;
         }
     }
 
     private Venda validateAndSanitize(Venda venda) {
         if (!hasValue(venda.getIdTransacao())) {
-            System.err.println("Dropped: Missing Transaction ID.");
+            System.err.println("Registro descartado: ID da Transação ausente.");
             return null;
         }
 
         if (venda.getValorFinal() == null) {
-            System.err.println("Dropped ID " + venda.getIdTransacao() + ": Missing Final Value.");
+            System.err.println("Registro descartado ID " + venda.getIdTransacao() + ": Valor Final ausente.");
             return null;
         }
 
         if (venda.getDataVenda() == null) {
-            System.err.println("Dropped ID " + venda.getIdTransacao() + ": Missing Date.");
+            System.err.println("Registro descartado ID " + venda.getIdTransacao() + ": Data ausente.");
             return null;
         }
 
