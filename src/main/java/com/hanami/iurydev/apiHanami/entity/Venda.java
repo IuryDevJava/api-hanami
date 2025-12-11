@@ -50,4 +50,5 @@ public class Venda {
 
     @Embedded
     private Logistica logistica;
+
 }
