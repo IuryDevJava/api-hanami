@@ -1,6 +1,6 @@
 package com.hanami.iurydev.apiHanami.service;
 
-import com.hanami.iurydev.apiHanami.dtos.VendaDTO;
+import com.hanami.iurydev.apiHanami.dto.VendaDTO;
 import com.hanami.iurydev.apiHanami.entity.Venda;
 import com.hanami.iurydev.apiHanami.entity.embeddable.Cliente;
 import com.hanami.iurydev.apiHanami.entity.embeddable.Logistica;

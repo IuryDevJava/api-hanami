@@ -1,4 +1,4 @@
-package com.hanami.iurydev.apiHanami.dtos;
+package com.hanami.iurydev.apiHanami.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
