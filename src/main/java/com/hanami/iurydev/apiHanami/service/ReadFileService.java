@@ -1,10 +1,18 @@
 package com.hanami.iurydev.apiHanami.service;
 
+import com.hanami.iurydev.apiHanami.dtos.VendaDTO;
 import com.hanami.iurydev.apiHanami.entity.Venda;
 import com.hanami.iurydev.apiHanami.entity.embeddable.Cliente;
-import com.hanami.iurydev.apiHanami.entity.enums.CanalVenda;
+import com.hanami.iurydev.apiHanami.entity.embeddable.Logistica;
+import com.hanami.iurydev.apiHanami.entity.embeddable.Produto;
+import com.hanami.iurydev.apiHanami.entity.enums.*;
+import com.hanami.iurydev.apiHanami.repository.VendaRepository;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
+import jakarta.transaction.Transactional;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -16,198 +24,251 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class ReadFileService {
 
-    private static final String[] EXPECTED_HEADERS = {
-            "id_transacao", "data_venda", "valor_final", "canal_venda", "idade_cliente"
-    };
+    private final VendaRepository vendaRepository;
+    private final Validator validator;
 
-    private static final int IDX_ID_TRANSACAO = 0;
-    private static final int IDX_DATA_VENDA = 1;
-    private static final int IDX_VALOR_FINAL = 2;
-    private static final int IDX_CANAL_VENDA = 3;
-    private static final int IDX_IDADE_CLIENTE = 4;
-
+    @Transactional
     public List<Venda> readFile(MultipartFile file) throws IOException {
         String fileName = file.getOriginalFilename();
+        List<VendaDTO> dtos;
 
-        if (fileName != null && fileName.endsWith(".csv")) {
-            return readCSV(file);
-        } else if (fileName != null && fileName.endsWith(".xlsx")) {
-            return readExcel(file);
+        if (fileName != null && fileName.toLowerCase().endsWith(".csv")) {
+            dtos = readCSV(file);
+        } else if (fileName != null && fileName.toLowerCase().endsWith(".xlsx")) {
+            dtos = readExcel(file);
         } else {
-            throw new IllegalArgumentException("Formato inválido. Por favor, envie um arquivo .csv ou .xlsx");
+            throw new IllegalArgumentException("Formato inválido. Envie .csv ou .xlsx");
         }
+
+        return processarEConverter(dtos);
     }
 
-    private List<Venda> readCSV(MultipartFile file) throws IOException {
-        List<Venda> salesList = new ArrayList<>();
+    // --- LEITURA CSV ---
+    private List<VendaDTO> readCSV(MultipartFile file) throws IOException {
+        List<VendaDTO> listaDtos = new ArrayList<>();
 
         try (Reader reader = new InputStreamReader(file.getInputStream());
              CSVReader csvReader = new CSVReader(reader)) {
 
-            String[] header = csvReader.readNext();
-            validateHeaders(header);
+            // Lê o cabeçalho para descobrir onde está cada coluna
+            String[] headers = csvReader.readNext();
+            if (headers == null) throw new IOException("Arquivo CSV vazio");
 
-            String[] rowArray;
-            while ((rowArray = csvReader.readNext()) != null) {
-                if (rowArray.length < EXPECTED_HEADERS.length) continue;
+            Map<String, Integer> mapaColunas = mapearCabecalho(headers);
 
-                Venda venda = convertDataToVenda(rowArray);
-                processAndAddVenda(salesList, venda);
+            String[] linha;
+            while ((linha = csvReader.readNext()) != null) {
+                String[] linhaFinal = linha;
+                VendaDTO dto = criarDtoApartirDaLinha(mapaColunas, (index) ->
+                        (index < linhaFinal.length) ? linhaFinal[index] : null
+                );
+                listaDtos.add(dto);
             }
-
         } catch (CsvValidationException e) {
-            throw new IOException("Erro ao validar a estrutura do CSV", e);
+            throw new IOException("Erro de validação na leitura do CSV", e);
         }
-
-        return salesList;
+        return listaDtos;
     }
 
-    private List<Venda> readExcel(MultipartFile file) throws IOException {
-        List<Venda> salesList = new ArrayList<>();
+    // LEITURA EXCEL
+    private List<VendaDTO> readExcel(MultipartFile file) throws IOException {
+        List<VendaDTO> listaDtos = new ArrayList<>();
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
+            Iterator<Row> rowIterator = sheet.iterator();
 
-            Row headerRow = sheet.getRow(0);
-            String[] headerArray = convertRowExcelToArray(headerRow);
-            validateHeaders(headerArray);
+            if (!rowIterator.hasNext()) return listaDtos;
 
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Skip header
+            // Lê Cabeçalho
+            Row headerRow = rowIterator.next();
+            Map<String, Integer> mapaColunas = mapearCabecalhoExcel(headerRow);
+            DataFormatter formatter = new DataFormatter();
 
-                String[] rowArray = convertRowExcelToArray(row);
-
-                Venda venda = convertDataToVenda(rowArray);
-                processAndAddVenda(salesList, venda);
-            }
-        }
-        return salesList;
-    }
-
-    private void processAndAddVenda(List<Venda> salesList, Venda venda) {
-        if (venda != null) {
-            Venda validatedVenda = validateAndSanitize(venda);
-            if (validatedVenda != null) {
-                salesList.add(validatedVenda);
-            }
-        }
-    }
-
-    private void validateHeaders(String[] headers) {
-        if (headers == null || headers.length < EXPECTED_HEADERS.length) {
-            throw new IllegalArgumentException("Arquivo inválido: Colunas obrigatórias ausentes.");
-        }
-
-        for (int i = 0; i < EXPECTED_HEADERS.length; i++) {
-            String fileHeader = headers[i].trim();
-            String expectedHeader = EXPECTED_HEADERS[i];
-
-            if (!fileHeader.equalsIgnoreCase(expectedHeader)) {
-                throw new IllegalArgumentException(
-                        String.format("Erro de Cabeçalho: Esperado '%s', encontrado '%s' na coluna %d.",
-                                expectedHeader, fileHeader, i + 1)
+            while (rowIterator.hasNext()) {
+                Row row = rowIterator.next();
+                VendaDTO dto = criarDtoApartirDaLinha(mapaColunas, (index) ->
+                        formatter.formatCellValue(row.getCell(index))
                 );
+                listaDtos.add(dto);
             }
         }
+        return listaDtos;
     }
 
-    private String[] convertRowExcelToArray(Row row) {
-        if (row == null) return new String[0];
+    @FunctionalInterface
+    interface LeitorValor {
+        String get(Integer index);
+    }
 
-        int numColumns = Math.max(EXPECTED_HEADERS.length, row.getLastCellNum());
-        String[] data = new String[numColumns];
-        DataFormatter dataFormatter = new DataFormatter();
+    private VendaDTO criarDtoApartirDaLinha(Map<String, Integer> mapa, LeitorValor leitor) {
+        VendaDTO dto = new VendaDTO();
 
-        for (int i = 0; i < numColumns; i++) {
-            Cell cell = row.getCell(i, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-            data[i] = dataFormatter.formatCellValue(cell);
+        var util = new Object() {
+            String txt(String nomeCol) {
+                Integer idx = mapa.get(nomeCol);
+                return (idx != null) ? leitor.get(idx) : null;
+            }
+            Double num(String nomeCol) {
+                String v = txt(nomeCol);
+                if (v == null || v.isBlank()) return null;
+                try {
+                    return Double.parseDouble(v.replace("R$", "").replace(",", ".").trim());
+                } catch (Exception e) { return null; }
+            }
+            Integer inteiro(String nomeCol) {
+                Double v = num(nomeCol);
+                return (v != null) ? v.intValue() : null;
+            }
+        };
+
+        // Mapeamento exato dos campos do DTO
+        dto.setIdTransacao(util.txt("id_transacao"));
+        dto.setDataVenda(util.txt("data_venda"));
+        dto.setValorFinal(util.num("valor_final"));
+        dto.setSubtotal(util.num("subtotal"));
+        dto.setDescontoPercent(util.num("desconto_percent"));
+        dto.setCanalVenda(util.txt("canal_venda"));
+        dto.setFormaPagamento(util.txt("forma_pagamento"));
+
+        // Cliente
+        dto.setClienteId(util.txt("cliente_id"));
+        dto.setNomeCliente(util.txt("nome_cliente"));
+        dto.setIdadeCliente(util.inteiro("idade_cliente"));
+        dto.setGeneroCliente(util.txt("genero_cliente"));
+        dto.setCidadeCliente(util.txt("cidade_cliente"));
+        dto.setEstadoCliente(util.txt("estado_cliente"));
+        dto.setRendaEstimada(util.num("renda_estimada"));
+
+        // Produto
+        dto.setProdutoId(util.txt("produto_id"));
+        dto.setNomeProduto(util.txt("nome_produto"));
+        dto.setCategoria(util.txt("categoria"));
+        dto.setMarca(util.txt("marca"));
+        dto.setPrecoUnitario(util.num("preco_unitario"));
+        dto.setQuantidade(util.inteiro("quantidade"));
+        dto.setMargemLucro(util.num("margem_lucro"));
+
+        // Logistica
+        dto.setRegiao(util.txt("regiao"));
+        dto.setStatusEntrega(util.txt("status_entrega"));
+        dto.setTempoEntregaDias(util.inteiro("tempo_entrega_dias"));
+        dto.setVendedorId(util.txt("vendedor_id"));
+
+        return dto;
+    }
+
+    // --- CONVERSÃO E SALVAMENTO ---
+    private List<Venda> processarEConverter(List<VendaDTO> dtos) {
+        List<Venda> vendasParaSalvar = new ArrayList<>();
+
+        for (VendaDTO dto : dtos) {
+            // 1. Validação (Pula se o DTO estiver inválido)
+            Set<ConstraintViolation<VendaDTO>> erros = validator.validate(dto);
+            if (!erros.isEmpty()) {
+                // Aqui você poderia guardar os erros para retornar ao controller
+                continue;
+            }
+
+            // 2. Converter DTO -> Entidade
+            try {
+                Venda venda = convertDtoToEntity(dto);
+                vendasParaSalvar.add(venda);
+            } catch (Exception e) {
+            }
         }
-        return data;
+
+        return vendaRepository.saveAll(vendasParaSalvar);
     }
 
-    private Venda convertDataToVenda(String[] data) {
+    private Venda convertDtoToEntity(VendaDTO dto) {
+        Venda venda = new Venda();
+        venda.setIdTransacao(dto.getIdTransacao());
+
         try {
-            Venda venda = new Venda();
-
-            venda.setIdTransacao(cleanText(data[IDX_ID_TRANSACAO]));
-
-            if (hasValue(data[IDX_DATA_VENDA])) {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                venda.setDataVenda(LocalDate.parse(data[IDX_DATA_VENDA].trim(), formatter));
-            }
-
-            if (hasValue(data[IDX_VALOR_FINAL])) {
-                String cleanValue = data[IDX_VALOR_FINAL].trim().replace("R$", "").replace(",", ".");
-                venda.setValorFinal(new BigDecimal(cleanValue));
-            }
-
-            if (hasValue(data[IDX_IDADE_CLIENTE])) {
-                try {
-                    int age = Integer.parseInt(data[IDX_IDADE_CLIENTE].trim());
-                    if (venda.getCliente() == null) venda.setCliente(new Cliente());
-                    venda.getCliente().setIdade(age);
-                } catch (NumberFormatException e) {
-                    System.err.println("Aviso: Formato de idade inválido para o ID " + venda.getIdTransacao());
-                }
-            }
-
-            if (hasValue(data[IDX_CANAL_VENDA])) {
-                String normalizedChannel = data[IDX_CANAL_VENDA].trim().toUpperCase();
-                try {
-                    venda.setCanalVenda(CanalVenda.valueOf(normalizedChannel));
-                } catch (IllegalArgumentException e) {
-                    System.err.println("Aviso: Canal de venda desconhecido: " + normalizedChannel);
-                }
-            }
-
-            return venda;
-
-        } catch (Exception e) {
-            String idRef = (data != null && data.length > 0) ? data[0] : "Desconhecido";
-            System.err.println("Erro crítico ao processar linha ID " + idRef + ": " + e.getMessage());
-            return null;
-        }
-    }
-
-    private Venda validateAndSanitize(Venda venda) {
-        if (!hasValue(venda.getIdTransacao())) {
-            System.err.println("Registro descartado: ID da Transação ausente.");
-            return null;
+            venda.setDataVenda(LocalDate.parse(dto.getDataVenda()));
+        } catch (DateTimeParseException e) {
+            venda.setDataVenda(LocalDate.parse(dto.getDataVenda(), DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         }
 
-        if (venda.getValorFinal() == null) {
-            System.err.println("Registro descartado ID " + venda.getIdTransacao() + ": Valor Final ausente.");
-            return null;
-        }
+        venda.setValorFinal(BigDecimal.valueOf(dto.getValorFinal()));
+        venda.setSubtotal(dto.getSubtotal() != null ? BigDecimal.valueOf(dto.getSubtotal()) : BigDecimal.ZERO);
+        venda.setDescontoPercent(dto.getDescontoPercent());
+        venda.setCanalVenda(parseEnum(CanalVenda.class, dto.getCanalVenda()));
+        venda.setFormaPagamento(parseEnum(FormaPagamento.class, dto.getFormaPagamento()));
 
-        if (venda.getDataVenda() == null) {
-            System.err.println("Registro descartado ID " + venda.getIdTransacao() + ": Data ausente.");
-            return null;
-        }
+        // Cliente
+        Cliente cliente = new Cliente();
+        cliente.setClienteId(dto.getClienteId());
+        cliente.setNomeCliente(dto.getNomeCliente());
+        cliente.setIdade(dto.getIdadeCliente());
+        cliente.setGenero(parseEnum(Genero.class, dto.getGeneroCliente()));
+        cliente.setCidade(dto.getCidadeCliente());
+        cliente.setEstado(dto.getEstadoCliente());
+        if(dto.getRendaEstimada() != null)
+            cliente.setRendaEstimada(BigDecimal.valueOf(dto.getRendaEstimada()));
+        venda.setCliente(cliente);
 
-        if (venda.getDescontoPercent() == null) {
-            venda.setDescontoPercent(0.0);
-        }
+        // Produto
+        Produto produto = new Produto();
+        produto.setProdutoId(dto.getProdutoId());
+        produto.setNomeProduto(dto.getNomeProduto());
+        produto.setCategoria(dto.getCategoria());
+        produto.setMarca(dto.getMarca());
+        if(dto.getPrecoUnitario() != null)
+            produto.setPrecoUnitario(BigDecimal.valueOf(dto.getPrecoUnitario()));
+        produto.setQuantidade(dto.getQuantidade());
+        produto.setMargemLucro(dto.getMargemLucro());
+        venda.setProduto(produto);
 
-        if (venda.getSubtotal() == null) {
-            venda.setSubtotal(venda.getValorFinal());
+        // Logistica
+        Logistica logistica = new Logistica();
+        logistica.setRegiao(parseEnum(Regiao.class, dto.getRegiao()));
+        // Trata "Em Trânsito" virando "EM_TRANSITO"
+        if(dto.getStatusEntrega() != null) {
+            String statusNorm = dto.getStatusEntrega().trim().toUpperCase().replace(" ", "_");
+            try {
+                logistica.setStatusEntrega(StatusEntrega.valueOf(statusNorm));
+            } catch (Exception e) { /* Deixa nulo se falhar */ }
         }
+        logistica.setTempoEntregaDias(dto.getTempoEntregaDias());
+        logistica.setVendedorId(dto.getVendedorId());
+        venda.setLogistica(logistica);
 
         return venda;
     }
 
+    // UTILITÁRIOS
 
-    private boolean hasValue(String text) {
-        return text != null && !text.trim().isEmpty();
+    private <T extends Enum<T>> T parseEnum(Class<T> enumClass, String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Enum.valueOf(enumClass, value.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
-    private String cleanText(String text) {
-        return text != null ? text.trim() : "";
+    private Map<String, Integer> mapearCabecalho(String[] headers) {
+        Map<String, Integer> map = new HashMap<>();
+        for (int i = 0; i < headers.length; i++) {
+            map.put(headers[i].trim().toLowerCase(), i);
+        }
+        return map;
+    }
+
+    private Map<String, Integer> mapearCabecalhoExcel(Row row) {
+        Map<String, Integer> map = new HashMap<>();
+        for (Cell cell : row) {
+            map.put(cell.getStringCellValue().trim().toLowerCase(), cell.getColumnIndex());
+        }
+        return map;
     }
 }
