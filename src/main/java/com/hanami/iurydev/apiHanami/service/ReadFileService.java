@@ -7,7 +7,9 @@ import com.hanami.iurydev.apiHanami.entity.embeddable.Logistica;
 import com.hanami.iurydev.apiHanami.entity.embeddable.Produto;
 import com.hanami.iurydev.apiHanami.entity.enums.*;
 import com.hanami.iurydev.apiHanami.repository.VendaRepository;
+import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
@@ -22,10 +24,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,231 +48,201 @@ public class ReadFileService {
         } else if (fileName != null && fileName.toLowerCase().endsWith(".xlsx")) {
             dtos = readExcel(file);
         } else {
-            throw new IllegalArgumentException("Formato inválido. Envie .csv ou .xlsx");
+            throw new IllegalArgumentException("Formato de arquivo não suportado");
         }
 
         return processarEConverter(dtos);
     }
 
-    // --- LEITURA CSV ---
     private List<VendaDTO> readCSV(MultipartFile file) throws IOException {
-        List<VendaDTO> listaDtos = new ArrayList<>();
+        List<VendaDTO> dtos = new ArrayList<>();
+        var parser = new CSVParserBuilder().withSeparator(',').build();
 
         try (Reader reader = new InputStreamReader(file.getInputStream());
-             CSVReader csvReader = new CSVReader(reader)) {
+             CSVReader csvReader = new CSVReaderBuilder(reader).withCSVParser(parser).build()) {
 
-            // Lê o cabeçalho para descobrir onde está cada coluna
             String[] headers = csvReader.readNext();
-            if (headers == null) throw new IOException("Arquivo CSV vazio");
+            if (headers == null) return dtos;
 
-            Map<String, Integer> mapaColunas = mapearCabecalho(headers);
+            Map<String, Integer> headerMap = mapearCabecalho(headers);
 
-            String[] linha;
-            while ((linha = csvReader.readNext()) != null) {
-                String[] linhaFinal = linha;
-                VendaDTO dto = criarDtoApartirDaLinha(mapaColunas, (index) ->
-                        (index < linhaFinal.length) ? linhaFinal[index] : null
-                );
-                listaDtos.add(dto);
+            String[] row;
+            while ((row = csvReader.readNext()) != null) {
+                String[] finalRow = row;
+                dtos.add(extrairDadosDaLinha(headerMap, i -> i < finalRow.length ? finalRow[i] : null));
             }
         } catch (CsvValidationException e) {
-            throw new IOException("Erro de validação na leitura do CSV", e);
+            throw new IOException("Falha ao validar estrutura do CSV", e);
         }
-        return listaDtos;
+        return dtos;
     }
 
-    // LEITURA EXCEL
     private List<VendaDTO> readExcel(MultipartFile file) throws IOException {
-        List<VendaDTO> listaDtos = new ArrayList<>();
-
+        List<VendaDTO> dtos = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rowIterator = sheet.iterator();
+            if (!rowIterator.hasNext()) return dtos;
 
-            if (!rowIterator.hasNext()) return listaDtos;
-
-            // Lê Cabeçalho
-            Row headerRow = rowIterator.next();
-            Map<String, Integer> mapaColunas = mapearCabecalhoExcel(headerRow);
+            Map<String, Integer> headerMap = mapearCabecalhoExcel(rowIterator.next());
             DataFormatter formatter = new DataFormatter();
 
             while (rowIterator.hasNext()) {
                 Row row = rowIterator.next();
-                VendaDTO dto = criarDtoApartirDaLinha(mapaColunas, (index) ->
-                        formatter.formatCellValue(row.getCell(index))
-                );
-                listaDtos.add(dto);
+                dtos.add(extrairDadosDaLinha(headerMap, i -> formatter.formatCellValue(row.getCell(i))));
             }
         }
-        return listaDtos;
+        return dtos;
     }
 
-    @FunctionalInterface
-    interface LeitorValor {
-        String get(Integer index);
-    }
-
-    private VendaDTO criarDtoApartirDaLinha(Map<String, Integer> mapa, LeitorValor leitor) {
+    private VendaDTO extrairDadosDaLinha(Map<String, Integer> map, java.util.function.Function<Integer, String> getVal) {
         VendaDTO dto = new VendaDTO();
-
-        var util = new Object() {
-            String txt(String nomeCol) {
-                Integer idx = mapa.get(nomeCol);
-                return (idx != null) ? leitor.get(idx) : null;
-            }
-            Double num(String nomeCol) {
-                String v = txt(nomeCol);
-                if (v == null || v.isBlank()) return null;
-                try {
-                    return Double.parseDouble(v.replace("R$", "").replace(",", ".").trim());
-                } catch (Exception e) { return null; }
-            }
-            Integer inteiro(String nomeCol) {
-                Double v = num(nomeCol);
-                return (v != null) ? v.intValue() : null;
-            }
-        };
-
-        // Mapeamento exato dos campos do DTO
-        dto.setIdTransacao(util.txt("id_transacao"));
-        dto.setDataVenda(util.txt("data_venda"));
-        dto.setValorFinal(util.num("valor_final"));
-        dto.setSubtotal(util.num("subtotal"));
-        dto.setDescontoPercent(util.num("desconto_percent"));
-        dto.setCanalVenda(util.txt("canal_venda"));
-        dto.setFormaPagamento(util.txt("forma_pagamento"));
-
-        // Cliente
-        dto.setClienteId(util.txt("cliente_id"));
-        dto.setNomeCliente(util.txt("nome_cliente"));
-        dto.setIdadeCliente(util.inteiro("idade_cliente"));
-        dto.setGeneroCliente(util.txt("genero_cliente"));
-        dto.setCidadeCliente(util.txt("cidade_cliente"));
-        dto.setEstadoCliente(util.txt("estado_cliente"));
-        dto.setRendaEstimada(util.num("renda_estimada"));
-
-        // Produto
-        dto.setProdutoId(util.txt("produto_id"));
-        dto.setNomeProduto(util.txt("nome_produto"));
-        dto.setCategoria(util.txt("categoria"));
-        dto.setMarca(util.txt("marca"));
-        dto.setPrecoUnitario(util.num("preco_unitario"));
-        dto.setQuantidade(util.inteiro("quantidade"));
-        dto.setMargemLucro(util.num("margem_lucro"));
-
-        // Logistica
-        dto.setRegiao(util.txt("regiao"));
-        dto.setStatusEntrega(util.txt("status_entrega"));
-        dto.setTempoEntregaDias(util.inteiro("tempo_entrega_dias"));
-        dto.setVendedorId(util.txt("vendedor_id"));
-
+        dto.setIdTransacao(getValByHeader(map, getVal, "id_transacao"));
+        dto.setDataVenda(getValByHeader(map, getVal, "data_venda"));
+        dto.setValorFinal(parseDeDouble(getValByHeader(map, getVal, "valor_final")));
+        dto.setSubtotal(parseDeDouble(getValByHeader(map, getVal, "subtotal")));
+        dto.setDescontoPercent(parseDeDouble(getValByHeader(map, getVal, "desconto_percent")));
+        dto.setCanalVenda(getValByHeader(map, getVal, "canal_venda"));
+        dto.setFormaPagamento(getValByHeader(map, getVal, "forma_pagamento"));
+        dto.setClienteId(getValByHeader(map, getVal, "cliente_id"));
+        dto.setNomeCliente(getValByHeader(map, getVal, "nome_cliente"));
+        dto.setIdadeCliente(parseDeInteger(getValByHeader(map, getVal, "idade_cliente")));
+        dto.setGeneroCliente(getValByHeader(map, getVal, "genero_cliente"));
+        dto.setCidadeCliente(getValByHeader(map, getVal, "cidade_cliente"));
+        dto.setEstadoCliente(getValByHeader(map, getVal, "estado_cliente"));
+        dto.setRendaEstimada(parseDeDouble(getValByHeader(map, getVal, "renda_estimada")));
+        dto.setProdutoId(getValByHeader(map, getVal, "produto_id"));
+        dto.setNomeProduto(getValByHeader(map, getVal, "nome_produto"));
+        dto.setCategoria(getValByHeader(map, getVal, "categoria"));
+        dto.setMarca(getValByHeader(map, getVal, "marca"));
+        dto.setPrecoUnitario(parseDeDouble(getValByHeader(map, getVal, "preco_unitario")));
+        dto.setQuantidade(parseDeInteger(getValByHeader(map, getVal, "quantidade")));
+        dto.setMargemLucro(parseDeDouble(getValByHeader(map, getVal, "margem_lucro")));
+        dto.setRegiao(getValByHeader(map, getVal, "regiao"));
+        dto.setStatusEntrega(getValByHeader(map, getVal, "status_entrega"));
+        dto.setTempoEntregaDias(parseDeInteger(getValByHeader(map, getVal, "tempo_entrega_dias")));
+        dto.setVendedorId(getValByHeader(map, getVal, "vendedor_id"));
         return dto;
     }
 
-    // --- CONVERSÃO E SALVAMENTO ---
     private List<Venda> processarEConverter(List<VendaDTO> dtos) {
-        List<Venda> vendasParaSalvar = new ArrayList<>();
+        Map<String, Venda> mapaVendas = new LinkedHashMap<>();
 
         for (VendaDTO dto : dtos) {
-            // 1. Validação (Pula se o DTO estiver inválido)
-            Set<ConstraintViolation<VendaDTO>> erros = validator.validate(dto);
-            if (!erros.isEmpty()) {
-                // Aqui você poderia guardar os erros para retornar ao controller
-                continue;
-            }
+            Set<ConstraintViolation<VendaDTO>> violacoes = validator.validate(dto);
 
-            // 2. Converter DTO -> Entidade
             try {
                 Venda venda = convertDtoToEntity(dto);
-                vendasParaSalvar.add(venda);
+
+                if (violacoes.isEmpty()) {
+                    venda.setProcessadoSucesso(true);
+                    venda.setObservacaoValidada("OK");
+                } else {
+                    venda.setProcessadoSucesso(false);
+                    String erros = violacoes.stream()
+                            .map(ConstraintViolation::getMessage)
+                            .collect(Collectors.joining(" | "));
+                    venda.setObservacaoValidada(erros);
+                }
+
+                mapaVendas.put(venda.getIdTransacao(), venda);
             } catch (Exception e) {
+                System.err.println("Erro crítico na linha: " + dto.getIdTransacao());
             }
         }
 
-        return vendaRepository.saveAll(vendasParaSalvar);
+        if (mapaVendas.isEmpty()) return new ArrayList<>();
+
+        List<String> idsExistentes = vendaRepository.findExistingIds(new ArrayList<>(mapaVendas.keySet()));
+        idsExistentes.forEach(mapaVendas::remove);
+
+        return vendaRepository.saveAll(mapaVendas.values());
     }
 
     private Venda convertDtoToEntity(VendaDTO dto) {
-        Venda venda = new Venda();
-        venda.setIdTransacao(dto.getIdTransacao());
+        Venda v = new Venda();
+        v.setIdTransacao(dto.getIdTransacao());
+        v.setDataVenda(parseData(dto.getDataVenda()));
+        v.setValorFinal(BigDecimal.valueOf(dto.getValorFinal()));
+        v.setSubtotal(dto.getSubtotal() != null ? BigDecimal.valueOf(dto.getSubtotal()) : BigDecimal.ZERO);
+        v.setDescontoPercent(dto.getDescontoPercent());
+        v.setCanalVenda(parseEnum(CanalVenda.class, dto.getCanalVenda()));
+        v.setFormaPagamento(parseEnum(FormaPagamento.class, dto.getFormaPagamento()));
 
-        try {
-            venda.setDataVenda(LocalDate.parse(dto.getDataVenda()));
-        } catch (DateTimeParseException e) {
-            venda.setDataVenda(LocalDate.parse(dto.getDataVenda(), DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-        }
+        Cliente c = new Cliente();
+        c.setClienteId(dto.getClienteId());
+        c.setNomeCliente(dto.getNomeCliente());
+        c.setIdade(dto.getIdadeCliente());
+        c.setGenero(parseEnum(Genero.class, dto.getGeneroCliente()));
+        c.setCidade(dto.getCidadeCliente());
+        c.setEstado(dto.getEstadoCliente());
+        if (dto.getRendaEstimada() != null) c.setRendaEstimada(BigDecimal.valueOf(dto.getRendaEstimada()));
+        v.setCliente(c);
 
-        venda.setValorFinal(BigDecimal.valueOf(dto.getValorFinal()));
-        venda.setSubtotal(dto.getSubtotal() != null ? BigDecimal.valueOf(dto.getSubtotal()) : BigDecimal.ZERO);
-        venda.setDescontoPercent(dto.getDescontoPercent());
-        venda.setCanalVenda(parseEnum(CanalVenda.class, dto.getCanalVenda()));
-        venda.setFormaPagamento(parseEnum(FormaPagamento.class, dto.getFormaPagamento()));
+        Produto p = new Produto();
+        p.setProdutoId(dto.getProdutoId());
+        p.setNomeProduto(dto.getNomeProduto());
+        p.setCategoria(dto.getCategoria());
+        p.setMarca(dto.getMarca());
+        if (dto.getPrecoUnitario() != null) p.setPrecoUnitario(BigDecimal.valueOf(dto.getPrecoUnitario()));
+        p.setQuantidade(dto.getQuantidade());
+        p.setMargemLucro(dto.getMargemLucro());
+        v.setProduto(p);
 
-        // Cliente
-        Cliente cliente = new Cliente();
-        cliente.setClienteId(dto.getClienteId());
-        cliente.setNomeCliente(dto.getNomeCliente());
-        cliente.setIdade(dto.getIdadeCliente());
-        cliente.setGenero(parseEnum(Genero.class, dto.getGeneroCliente()));
-        cliente.setCidade(dto.getCidadeCliente());
-        cliente.setEstado(dto.getEstadoCliente());
-        if(dto.getRendaEstimada() != null)
-            cliente.setRendaEstimada(BigDecimal.valueOf(dto.getRendaEstimada()));
-        venda.setCliente(cliente);
+        Logistica l = new Logistica();
+        l.setRegiao(parseEnum(Regiao.class, dto.getRegiao()));
+        l.setStatusEntrega(parseEnum(StatusEntrega.class, dto.getStatusEntrega()));
+        l.setTempoEntregaDias(dto.getTempoEntregaDias());
+        l.setVendedorId(dto.getVendedorId());
+        v.setLogistica(l);
 
-        // Produto
-        Produto produto = new Produto();
-        produto.setProdutoId(dto.getProdutoId());
-        produto.setNomeProduto(dto.getNomeProduto());
-        produto.setCategoria(dto.getCategoria());
-        produto.setMarca(dto.getMarca());
-        if(dto.getPrecoUnitario() != null)
-            produto.setPrecoUnitario(BigDecimal.valueOf(dto.getPrecoUnitario()));
-        produto.setQuantidade(dto.getQuantidade());
-        produto.setMargemLucro(dto.getMargemLucro());
-        venda.setProduto(produto);
-
-        // Logistica
-        Logistica logistica = new Logistica();
-        logistica.setRegiao(parseEnum(Regiao.class, dto.getRegiao()));
-        // Trata "Em Trânsito" virando "EM_TRANSITO"
-        if(dto.getStatusEntrega() != null) {
-            String statusNorm = dto.getStatusEntrega().trim().toUpperCase().replace(" ", "_");
-            try {
-                logistica.setStatusEntrega(StatusEntrega.valueOf(statusNorm));
-            } catch (Exception e) { /* Deixa nulo se falhar */ }
-        }
-        logistica.setTempoEntregaDias(dto.getTempoEntregaDias());
-        logistica.setVendedorId(dto.getVendedorId());
-        venda.setLogistica(logistica);
-
-        return venda;
+        return v;
     }
 
-    // UTILITÁRIOS
+    private LocalDate parseData(String data) {
+        try {
+            return LocalDate.parse(data);
+        } catch (DateTimeParseException e) {
+            return LocalDate.parse(data, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        }
+    }
+
+    private Double parseDeDouble(String v) {
+        if (v == null || v.isBlank()) return null;
+        try {
+            return Double.parseDouble(v.replace("R$", "").replace(".", "").replace(",", ".").trim());
+        } catch (Exception e) { return null; }
+    }
+
+    private Integer parseDeInteger(String v) {
+        Double d = parseDeDouble(v);
+        return d != null ? d.intValue() : null;
+    }
+
+    private String getValByHeader(Map<String, Integer> map, java.util.function.Function<Integer, String> getVal, String key) {
+        Integer idx = map.get(key);
+        return idx != null ? getVal.apply(idx) : null;
+    }
 
     private <T extends Enum<T>> T parseEnum(Class<T> enumClass, String value) {
         if (value == null || value.isBlank()) return null;
-        try {
-            return Enum.valueOf(enumClass, value.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+        String norm = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .trim().toUpperCase().replace(" ", "_").replace("-", "_");
+        try { return Enum.valueOf(enumClass, norm); } catch (Exception e) { return null; }
     }
 
     private Map<String, Integer> mapearCabecalho(String[] headers) {
         Map<String, Integer> map = new HashMap<>();
         for (int i = 0; i < headers.length; i++) {
-            map.put(headers[i].trim().toLowerCase(), i);
+            map.put(headers[i].replace("\uFEFF", "").trim().toLowerCase(), i);
         }
         return map;
     }
 
     private Map<String, Integer> mapearCabecalhoExcel(Row row) {
         Map<String, Integer> map = new HashMap<>();
-        for (Cell cell : row) {
-            map.put(cell.getStringCellValue().trim().toLowerCase(), cell.getColumnIndex());
-        }
+        row.forEach(cell -> map.put(cell.getStringCellValue().trim().toLowerCase(), cell.getColumnIndex()));
         return map;
     }
 }

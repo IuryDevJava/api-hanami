@@ -4,6 +4,8 @@ package com.hanami.iurydev.apiHanami.repository;
 import com.hanami.iurydev.apiHanami.entity.Venda;
 import com.hanami.iurydev.apiHanami.entity.enums.Regiao;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -22,4 +24,7 @@ public interface VendaRepository extends JpaRepository<Venda, Long> {
     List<Venda> findByLogistica_Regiao(Regiao regiao);
 
     List<Venda> findByCliente_Estado(String estado);
+
+    @Query("SELECT v.idTransacao FROM Venda v WHERE v.idTransacao IN :ids")
+    List<String> findExistingIds(@Param("ids") List<String> ids);
 }

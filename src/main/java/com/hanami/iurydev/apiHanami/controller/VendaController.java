@@ -23,21 +23,24 @@ public class VendaController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadDTO> uploadFile(@RequestParam("file") MultipartFile file) {
-
-        try {
-            List<Venda> salesSave = readFileService.readFile(file);
-
-            UploadDTO response = new UploadDTO(
-                    "sucesso",
-                    salesSave.size()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new UploadDTO("Erro: " + e.getMessage(), 0));
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(new UploadDTO("Erro: Arquivo não enviado", 0));
         }
 
+        try {
+            List<Venda> processados = readFileService.readFile(file);
+
+            if (processados.isEmpty()) {
+                return ResponseEntity.ok(new UploadDTO("Aviso: Nenhuma nova linha válida processada (verifique duplicatas ou regras de negócio)", 0));
+            }
+
+            return ResponseEntity.ok(new UploadDTO("sucesso", processados.size()));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new UploadDTO(e.getMessage(), 0));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new UploadDTO("Erro interno no servidor", 0));
+        }
     }
 
 }

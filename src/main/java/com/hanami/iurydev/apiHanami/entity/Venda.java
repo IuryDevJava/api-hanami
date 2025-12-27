@@ -34,6 +34,11 @@ public class Venda {
     @Column(name = "desconto_percent")
     private Double descontoPercent;
 
+    @Column(columnDefinition = "TEXT")
+    private String observacaoValidada;
+
+    private boolean processadoSucesso;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "canal_venda")
     private CanalVenda canalVenda;
