@@ -65,6 +65,7 @@ public class ReadFileService {
             if (headers == null) return dtos;
 
             Map<String, Integer> headerMap = mapearCabecalho(headers);
+            verificarColunasObrigatorias(headerMap);
 
             String[] row;
             while ((row = csvReader.readNext()) != null) {
@@ -85,6 +86,7 @@ public class ReadFileService {
             if (!rowIterator.hasNext()) return dtos;
 
             Map<String, Integer> headerMap = mapearCabecalhoExcel(rowIterator.next());
+            verificarColunasObrigatorias(headerMap);
             DataFormatter formatter = new DataFormatter();
 
             while (rowIterator.hasNext()) {
@@ -244,5 +246,32 @@ public class ReadFileService {
         Map<String, Integer> map = new HashMap<>();
         row.forEach(cell -> map.put(cell.getStringCellValue().trim().toLowerCase(), cell.getColumnIndex()));
         return map;
+    }
+
+    private void mapearCabecalho(Row headerRow) {
+        List<String> colunasEsperadas = Arrays.asList("ID Transação", "Data", "Região", "Estado", "Vendedor", "Item", "Unidades", "Preço Unitário", "Custo Unitário");
+
+        for (String coluna : colunasEsperadas) {
+            boolean encontrada = false;
+            for (Cell cell : headerRow) {
+                if (cell.getStringCellValue().equalsIgnoreCase(coluna)) {
+                    encontrada = true;
+                    break;
+                }
+            }
+            if (!encontrada) {
+                throw new IllegalArgumentException("Coluna ausente: " + coluna);
+            }
+        }
+    }
+
+    private void verificarColunasObrigatorias(Map<String, Integer> headerMap) {
+        List<String> obrigatorias = Arrays.asList("id_transacao", "data_venda", "valor_final", "margem_lucro");
+
+        for (String coluna : obrigatorias) {
+            if (!headerMap.containsKey(coluna)) {
+                throw new IllegalArgumentException("Coluna obrigatória ausente: " + coluna);
+            }
+        }
     }
 }
