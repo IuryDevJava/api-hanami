@@ -292,3 +292,68 @@ src/main/java/com/hanami/iurydev/apiHanami
 ```sql
    DROP TABLE hanamiapidb.vendas;
 ```
+
+---
+
+### Logs e Observabilidade
+#### Visão Geral
+#### A API utiliza logging estruturado para registrar eventos importantes durante o processamento de arquivos, facilitando:
+
+- **Monitoramento da aplicação**
+- **Debug de erros**
+- **Auditoria de processamento**
+- **Análise de falhas em produção**
+
+#### Insira em cima da classe controller a seguinte anotação:
+```java
+   @Slf4j
+   @RestController
+   @RequestMapping("/vendas")
+   public class VendaController {
+   }
+```
+
+---
+
+#### Logs de Sucesso
+```text
+   200 OK. Arquivo 'vendas_ficticias_10000_linhas.csv' foi processado com sucesso. Total: 10000 linhas
+```
+
+#### Quando ocorre?
+- **Upload válido**
+- **Arquivo lido corretamente**
+- **Processamento finalizado sem erros**
+
+---
+
+#### Logs de Erro - Requisição Inválida (400)
+```text
+   Erro 400. Ao tentar fazer o upload sem arquivo foi retornado um erro
+```
+
+#### Quando ocorre?
+- **Parâmetro file não enviado**
+- **Arquivo vazio**
+
+---
+
+#### Logs de Erro — Estrutura de Arquivo Inválida (422)
+```text
+   Erro 422. Arquivo enviado não contém uma ou mais colunas obrigatórias Coluna obrigatória ausente: id_transacao
+```
+
+#### Quando ocorre?
+- **CSV/XLSX não possui colunas obrigatórias**
+- **Estrutura incompatível com o parser**
+
+---
+
+#### Logs de Erro Crítico — Falha Interna (500)
+```text
+   Erro crítico durante o processamento de upload
+```
+
+#### Quando ocorre?
+- **Exceções inesperadas**
+- **Falhas de I/O, parsing ou banco de dados**

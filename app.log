@@ -1,0 +1,47 @@
+2025-12-29 12:44:11 [ restartedMain ] INFO  : Starting ApiHanamiApplication using Java 17.0.12 with PID 12548 (C:\Users\iuryr\Desktop\apiHanami\target\classes started by iuryr in C:\Users\iuryr\Desktop\apiHanami)
+2025-12-29 12:44:11 [ restartedMain ] INFO  : The following 1 profile is active: "dev"
+2025-12-29 12:44:11 [ restartedMain ] INFO  : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2025-12-29 12:44:11 [ restartedMain ] INFO  : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2025-12-29 12:44:12 [ restartedMain ] INFO  : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-29 12:44:12 [ restartedMain ] INFO  : Finished Spring Data repository scanning in 79 ms. Found 1 JPA repository interface.
+2025-12-29 12:44:13 [ restartedMain ] INFO  : Tomcat initialized with port 8080 (http)
+2025-12-29 12:44:13 [ restartedMain ] INFO  : Starting service [Tomcat]
+2025-12-29 12:44:13 [ restartedMain ] INFO  : Starting Servlet engine: [Apache Tomcat/11.0.14]
+2025-12-29 12:44:13 [ restartedMain ] INFO  : Root WebApplicationContext: initialization completed in 2173 ms
+2025-12-29 12:44:13 [ restartedMain ] INFO  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-29 12:44:13 [ restartedMain ] INFO  : HHH000412: Hibernate ORM core version 7.1.8.Final
+2025-12-29 12:44:14 [ restartedMain ] INFO  : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-29 12:44:15 [ restartedMain ] INFO  : HikariPool-1 - Starting...
+2025-12-29 12:44:15 [ restartedMain ] INFO  : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@7f458d5a
+2025-12-29 12:44:15 [ restartedMain ] INFO  : HikariPool-1 - Start completed.
+2025-12-29 12:44:15 [ restartedMain ] WARN  : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-29 12:44:15 [ restartedMain ] INFO  : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:3306/hanamiapidb]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.0.40
+	Default catalog/schema: hanamiapidb/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DatasourceConnectionProviderImpl
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-12-29 12:44:18 [ restartedMain ] INFO  : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-29 12:44:18 [ restartedMain ] INFO  : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-29 12:44:18 [ restartedMain ] INFO  : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-12-29 12:44:20 [ restartedMain ] WARN  : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-12-29 12:44:21 [ restartedMain ] INFO  : Tomcat started on port 8080 (http) with context path '/'
+2025-12-29 12:44:21 [ restartedMain ] INFO  : Started ApiHanamiApplication in 10.661 seconds (process running for 11.552)
+2025-12-29 12:45:36 [ http-nio-8080-exec-1 ] INFO  : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-29 12:45:36 [ http-nio-8080-exec-1 ] INFO  : Initializing Servlet 'dispatcherServlet'
+2025-12-29 12:45:36 [ http-nio-8080-exec-1 ] INFO  : Completed initialization in 1 ms
+2025-12-29 12:45:54 [ http-nio-8080-exec-1 ] INFO  : 200 OK. Arquivo 'vendas_ficticias_10000_linhas.csv' foi processado com sucesso. Total: 10000 linhas
+2025-12-29 15:53:52 [ HikariPool-1:housekeeper ] WARN  : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=43m34s635ms375µs).
+2025-12-29 16:08:44 [ http-nio-8080-exec-10 ] ERROR : Erro 400. Ao tentar fazer o upload sem arquivo foi retornado um erro
+2025-12-29 16:12:13 [ http-nio-8080-exec-7 ] ERROR : Erro 422. Arquivo enviado não contém uma ou mais colunas obrigatórias Coluna obrigatória ausente: id_transacao
+2025-12-29 16:13:19 [ SpringApplicationShutdownHook ] INFO  : Commencing graceful shutdown. Waiting for active requests to complete
+2025-12-29 16:13:19 [ tomcat-shutdown ] INFO  : Graceful shutdown complete
+2025-12-29 16:13:19 [ SpringApplicationShutdownHook ] INFO  : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-29 16:13:19 [ SpringApplicationShutdownHook ] INFO  : HikariPool-1 - Shutdown initiated...
+2025-12-29 16:13:19 [ SpringApplicationShutdownHook ] INFO  : HikariPool-1 - Shutdown completed.
