@@ -1,8 +1,12 @@
 package com.hanami.iurydev.apiHanami.controller;
 
+import com.hanami.iurydev.apiHanami.dto.ProdutoAnalysisDTO;
+import com.hanami.iurydev.apiHanami.dto.RelatorioFinanceiroDTO;
 import com.hanami.iurydev.apiHanami.dto.UploadDTO;
 import com.hanami.iurydev.apiHanami.entity.Venda;
+import com.hanami.iurydev.apiHanami.repository.VendaRepository;
 import com.hanami.iurydev.apiHanami.service.ReadFileService;
+import com.hanami.iurydev.apiHanami.service.VendaCalcularService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,6 +24,8 @@ import java.util.List;
 public class VendaController {
 
     private final ReadFileService readFileService;
+    private final VendaCalcularService vendaCalcularService;
+    private final VendaRepository vendaRepository;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadDTO> uploadFile(@RequestParam(value = "file", required = false) MultipartFile file) {
@@ -50,5 +56,22 @@ public class VendaController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new UploadDTO("Erro interno ao processar o arquivo", 0));
         }
+    }
+
+    @GetMapping("/reports/sales-summary")
+    public ResponseEntity<RelatorioFinanceiroDTO> getSalesSumary() {
+        List<Venda> vendasSucesso = vendaRepository.findAll()
+                .stream()
+                .filter(Venda::isProcessadoSucesso)
+                .toList();
+        return ResponseEntity.ok(vendaCalcularService.calculaFinanceiro(vendasSucesso));
+    }
+
+    @GetMapping("/reports/product-analysis")
+    public ResponseEntity<List<ProdutoAnalysisDTO>> getProductAnalisys(
+            @RequestParam(value = "sort_by", required = false) String sortBy) {
+        List<Venda> vendas = vendaRepository.findAll();
+        List<ProdutoAnalysisDTO> analise = vendaCalcularService.analisarProdutos(vendas, sortBy);
+        return ResponseEntity.ok(analise);
     }
 }
