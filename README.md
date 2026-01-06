@@ -495,5 +495,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ### Check-list Final de Fechamento da Sprint 1:
 **[X] Código: O projeto compila sem erros? (Sim)**
+
 **[X] Testes: Os endpoints no Postman batem com os resultados do SQL? (Sim)**
+
 **[X] Documentação: O README reflete a realidade do código? (Sim)**
