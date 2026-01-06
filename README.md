@@ -416,7 +416,6 @@ src/main/java/com/hanami/iurydev/apiHanami
    ORDER BY total_arrecadado DESC;
 ```
 
-Retorna um JSON com lucro_bruto, receita_liquida e custo_total
 #### Retorna lucro_bruto, receita_liquida e custo_total
 ```sql
    SELECT
