@@ -1,5 +1,6 @@
 package com.hanami.iurydev.apiHanami.service;
 
+import com.hanami.iurydev.apiHanami.dto.MetricaFinanceiraDTO;
 import com.hanami.iurydev.apiHanami.dto.ProdutoAnalysisDTO;
 import com.hanami.iurydev.apiHanami.dto.RelatorioFinanceiroDTO;
 import com.hanami.iurydev.apiHanami.entity.Venda;
@@ -16,33 +17,63 @@ import java.util.stream.Collectors;
 public class VendaCalcularService {
 
     public RelatorioFinanceiroDTO calculaFinanceiro(List<Venda> vendas) {
-        if (vendas.isEmpty()) {
-            return new RelatorioFinanceiroDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L);
-        }
+        List<Venda> validas = filtradosComSucessos(vendas);
+        if (validas.isEmpty()) return criarRelatorioVazio();
 
-        List<Venda> validas = vendas.stream().filter(Venda::isProcessadoSucesso).toList();
+        double totalVendas = calcularTotal(validas);
+        double lucroBruto = calcularLucro(validas);
+        double custoTotal = totalVendas - lucroBruto;
+        long qtd = validas.size();
 
-        double totalVendas = validas.stream()
-                .mapToDouble(v -> v.getValorFinal().doubleValue())
-                .sum();
-
-        long numeroTransacoes = (long) validas.size();
-
-        double media = numeroTransacoes > 0 ? totalVendas / numeroTransacoes : 0.0;
-
-        double lucroBruto = validas.stream()
-                .mapToDouble(v -> v.getValorFinal().doubleValue() * (v.getProduto().getMargemLucro() / 100))
-                .sum();
-
-        double receitaLiquida = totalVendas - lucroBruto;
-
-        // Convertendo para BigDecimal com arredondamento de 2 casas
         return new RelatorioFinanceiroDTO(
-                formatarMoeda(receitaLiquida),
+                formatarMoeda(totalVendas - lucroBruto), // Receita Líquida
                 formatarMoeda(lucroBruto),
                 formatarMoeda(totalVendas),
-                formatarMoeda(media),
-                numeroTransacoes
+                formatarMoeda(totalVendas / qtd),
+                formatarMoeda(custoTotal),
+                qtd
+        );
+    }
+
+    public MetricaFinanceiraDTO calculaMetricas(List<Venda> vendas) {
+        List<Venda> validas = filtradosComSucessos(vendas);
+        if (validas.isEmpty()) return new MetricaFinanceiraDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+
+        double totalVendas = calcularTotal(validas);
+        double lucroBruto = calcularLucro(validas);
+
+        return new MetricaFinanceiraDTO(
+                formatarMoeda(totalVendas - lucroBruto), // Receita Líquida
+                formatarMoeda(lucroBruto),
+                formatarMoeda(totalVendas - lucroBruto)  // Custo Total
+        );
+    }
+
+    private List<Venda> filtradosComSucessos(List<Venda> vendas) {
+        return vendas
+                .stream()
+                .filter(Venda::isProcessadoSucesso)
+                .toList();
+    }
+
+    private double calcularTotal(List<Venda> validas) {
+        return validas
+                .stream()
+                .mapToDouble(v -> v.getValorFinal().doubleValue())
+                .sum();
+    }
+
+    private double calcularLucro(List<Venda> validas) {
+        return validas
+                .stream()
+                .mapToDouble(v -> v.getValorFinal().doubleValue() * (v.getProduto().getMargemLucro() / 100))
+                .sum();
+    }
+
+    private RelatorioFinanceiroDTO criarRelatorioVazio() {
+        return new RelatorioFinanceiroDTO(
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, 0L
         );
     }
 

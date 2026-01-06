@@ -1,5 +1,6 @@
 package com.hanami.iurydev.apiHanami.controller;
 
+import com.hanami.iurydev.apiHanami.dto.MetricaFinanceiraDTO;
 import com.hanami.iurydev.apiHanami.dto.ProdutoAnalysisDTO;
 import com.hanami.iurydev.apiHanami.dto.RelatorioFinanceiroDTO;
 import com.hanami.iurydev.apiHanami.dto.UploadDTO;
@@ -60,11 +61,8 @@ public class VendaController {
 
     @GetMapping("/reports/sales-summary")
     public ResponseEntity<RelatorioFinanceiroDTO> getSalesSumary() {
-        List<Venda> vendasSucesso = vendaRepository.findAll()
-                .stream()
-                .filter(Venda::isProcessadoSucesso)
-                .toList();
-        return ResponseEntity.ok(vendaCalcularService.calculaFinanceiro(vendasSucesso));
+        List<Venda> vendas = vendaRepository.findAll();
+        return ResponseEntity.ok(vendaCalcularService.calculaFinanceiro(vendas));
     }
 
     @GetMapping("/reports/product-analysis")
@@ -73,5 +71,12 @@ public class VendaController {
         List<Venda> vendas = vendaRepository.findAll();
         List<ProdutoAnalysisDTO> analise = vendaCalcularService.analisarProdutos(vendas, sortBy);
         return ResponseEntity.ok(analise);
+    }
+
+    @GetMapping("/reports/financial-metrics")
+    public ResponseEntity<MetricaFinanceiraDTO> getFinancialMetrics(){
+        List<Venda> vendas = vendaRepository.findAll();
+        MetricaFinanceiraDTO metricas = vendaCalcularService.calculaMetricas(vendas);
+        return ResponseEntity.ok(metricas);
     }
 }

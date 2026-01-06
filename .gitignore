@@ -6,6 +6,9 @@ target/
 
 src/main/resources/application-dev.properties
 
+app.log
+app.log.2026-01-03.0.gz
+
 ### STS ###
 .apt_generated
 .classpath
