@@ -10,6 +10,7 @@ Este projeto faz parte do **Projeto Hanami**, uma iniciativa de impacto social v
 - **Prazo total:** 40 dias
 - **Metodologia:** Desenvolvimento incremental por sprints
 - **Sprint atual:** Sprint 1 – Fundação e Setup do Projeto
+- **Status atual:** Finalizada
 
 ### 🎯 Objetivo Geral
 Desenvolver uma API robusta capaz de:
@@ -194,7 +195,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ---
 
-### Respostas da API
+### Respostas da API - métodos POST
 #### ✅ 200 OK - Upload feito com sucesso
 ##### Retornado quando o arquivo é processado de forma correta e contêm registros validados
 ```json
@@ -228,12 +229,107 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ---
 
-#### 422 Unprocessable Entity — Estrutura inválida
+#### 422 Unprocessable Entity - Estrutura inválida
 ##### Retornado quando o arquivo não possui colunas obrigatórias.
 ```json
    {
   "status": "Coluna obrigatória ausente: id_transacao",
   "linhas_processadas": 0
+   }
+```
+
+---
+
+### Métodos GET 
+##### {{base_url}}/vendas/reports/sales-summary - Retorna total de vendas e a média por transação.
+```json
+   {
+  "receita_liquida": 5243176617.89,
+  "lucro_bruto": 3099751358.11,
+  "total_vendas": 8342927976.00,
+  "media_por_transacao": 928849.70,
+  "custo_total": 5243176617.89,
+  "numero_transacoes": 8982
+   }
+```
+
+---
+
+##### {{base_url}}/vendas/reports/product-analysis - Retorna uma lista de produtos sem ordenação.
+```json
+   [
+  {
+    "nome_produto": "Carregador Wireless",
+    "quatidade_vendida": 1006,
+    "total_arrecadado": 288235871.00
+  },
+  {
+    "nome_produto": "iPhone 15",
+    "quatidade_vendida": 787,
+    "total_arrecadado": 246201201.00
+  },
+  {
+    "nome_produto": "Apple Watch",
+    "quatidade_vendida": 858,
+    "total_arrecadado": 249837283.00
+  }
+  ]
+```
+
+---
+
+##### {{base_url}}/vendas/reports/product-analysis?sort_by=quantidade - Retorna os produtos de forma ordenada e por quantidade.
+```json
+   [
+  {
+    "nome_produto": "Cabo USB-C",
+    "quatidade_vendida": 1061,
+    "total_arrecadado": 339386041.00
+  },
+  {
+    "nome_produto": "Webcam HD",
+    "quatidade_vendida": 1026,
+    "total_arrecadado": 319378902.00
+  },
+  {
+    "nome_produto": "Carregador Wireless",
+    "quatidade_vendida": 1006,
+    "total_arrecadado": 288235871.00
+  }
+  ]
+```
+
+---
+
+##### {{base_url}}/vendas/reports/product-analysis?sort_by=valor - Retorna os produtos de forma ordenada e por valor.
+```json
+   [
+  {
+    "nome_produto": "Cabo USB-C",
+    "quatidade_vendida": 1061,
+    "total_arrecadado": 339386041.00
+  },
+  {
+    "nome_produto": "Webcam HD",
+    "quatidade_vendida": 1026,
+    "total_arrecadado": 319378902.00
+  },
+  {
+    "nome_produto": "Chromecast",
+    "quatidade_vendida": 934,
+    "total_arrecadado": 294529780.00
+  }
+  ]
+```
+
+---
+
+##### {{base_url}}/vendas/reports/financial-metrics - Retorna um JSON com lucro_bruto, receita_liquida e custo_total.
+```json
+   {
+  "receita_liquida": 5243176617.89,
+  "lucro_bruto": 3099751358.11,
+  "custo_total": 5243176617.89
    }
 ```
 
@@ -253,6 +349,8 @@ src/main/java/com/hanami/iurydev/apiHanami
 ---
 
 ### Banco de Dados MySQL
+#### Modelo de Dados
+#### A aplicação utiliza o modelo de persistência onde os dados do Produto são tratados como objetos incorporáveis (@Embeddable), resultando em uma tabela única de vendas para otimização de performance analítica.
 #### Criar e usar o banco (não esqueça que o nome do banco precisa ser o mesmo no arquivo properties em spring.datasource.url=jdbc:mysql://localhost:3306/hanamiapidb)
 ```sql
    CREATE DATABASE hanamiapidb;
@@ -291,6 +389,42 @@ src/main/java/com/hanami/iurydev/apiHanami
 #### Limpar tabela
 ```sql
    DROP TABLE hanamiapidb.vendas;
+```
+
+#### Valida o endpoint que retorna os 6 campos. Faz a soma total, calcula a média e conta as transações
+```sql
+   SELECT
+       SUM(valor_final) AS total_vendas,
+       SUM(valor_final * (margem_lucro / 100)) AS lucro_bruto,
+       SUM(valor_final) - SUM(valor_final * (margem_lucro / 100)) AS receita_liquida,
+       SUM(valor_final - (valor_final * (margem_lucro / 100))) AS custo_total,
+       AVG(valor_final) AS media_por_transacao,
+       COUNT(*) AS numero_transacoes
+   FROM vendas
+   WHERE processado_sucesso = 1;
+```
+
+#### Valida a lista de produtos, a quantidade vendida e o total arrecadado em ordem decrescente
+```sql
+   SELECT
+       nome_produto,
+       COUNT(*) AS quantidade_vendida,
+       SUM(valor_final) AS total_arrecadado
+   FROM vendas
+   WHERE processado_sucesso = 1
+   GROUP BY nome_produto
+   ORDER BY total_arrecadado DESC;
+```
+
+Retorna um JSON com lucro_bruto, receita_liquida e custo_total
+#### Retorna lucro_bruto, receita_liquida e custo_total
+```sql
+   SELECT
+       SUM(valor_final * (margem_lucro / 100)) AS lucro_bruto,
+       SUM(valor_final) - SUM(valor_final * (margem_lucro / 100)) AS receita_liquida,
+       SUM(valor_final - (valor_final * (margem_lucro / 100))) AS custo_total
+   FROM vendas
+   WHERE processado_sucesso = 1;
 ```
 
 ---
@@ -357,3 +491,10 @@ src/main/java/com/hanami/iurydev/apiHanami
 #### Quando ocorre?
 - **Exceções inesperadas**
 - **Falhas de I/O, parsing ou banco de dados**
+
+---
+
+### Check-list Final de Fechamento da Sprint 1:
+**[X] Código: O projeto compila sem erros? (Sim)**
+**[X] Testes: Os endpoints no Postman batem com os resultados do SQL? (Sim)**
+**[X] Documentação: O README reflete a realidade do código? (Sim)**
