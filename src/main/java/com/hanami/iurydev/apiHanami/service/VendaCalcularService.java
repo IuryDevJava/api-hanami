@@ -1,13 +1,14 @@
 package com.hanami.iurydev.apiHanami.service;
 
-import com.hanami.iurydev.apiHanami.dto.MetricaFinanceiraDTO;
-import com.hanami.iurydev.apiHanami.dto.ProdutoAnalysisDTO;
-import com.hanami.iurydev.apiHanami.dto.RelatorioFinanceiroDTO;
+import com.hanami.iurydev.apiHanami.dto.*;
 import com.hanami.iurydev.apiHanami.entity.Venda;
+import com.hanami.iurydev.apiHanami.entity.embeddable.Cliente;
+import com.hanami.iurydev.apiHanami.entity.enums.Genero;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -111,5 +112,109 @@ public class VendaCalcularService {
         }
 
         return resultado;
+    }
+
+    public List<MetricasRegiaoDTO> calcularMetricasPorRegiao(List<Venda> vendas) {
+        Map<String, List<Venda>> calculoPorRegiao = vendas.stream()
+                .collect(Collectors.groupingBy(v -> v.getLogistica().getRegiao().name()));
+
+        return calculoPorRegiao.entrySet().stream()
+                .map(entry -> {
+                    String nomeRegiao = entry.getKey();
+                    List<Venda> listaRegiao = entry.getValue();
+
+                    BigDecimal totalRegiao = BigDecimal.valueOf(calcularTotal(listaRegiao));
+                    BigDecimal lucroRegiao = BigDecimal.valueOf(calcularLucro(listaRegiao));
+
+                    return new MetricasRegiaoDTO(nomeRegiao, totalRegiao, lucroRegiao);
+
+                })
+                .toList();
+    }
+
+    public List<DistribuicaoDTO> calcularDistribuicaoPorGenero(List<Venda> vendas) {
+        if (vendas.isEmpty())
+            return Collections.emptyList();
+
+        long totalVendas = vendas.size();
+
+        Map<Genero, List<Venda>> agrupar = vendas.stream()
+                .collect(Collectors.groupingBy(v -> v.getCliente().getGenero()));
+
+        return agrupar.entrySet().stream()
+                .map(entry -> {
+                    String nomeGenero = (entry.getKey() != null) ? entry.getKey().name() : "Não informado";
+                    long contagem = entry.getValue().size();
+
+                    double percentual = (contagem * 100.0) / totalVendas;
+
+                    return new DistribuicaoDTO(nomeGenero, contagem, percentual);
+
+                })
+                .toList();
+    }
+
+    public List<DistribuicaoDTO> calcularDistribuicaoPorCidade(List<Venda> vendas) {
+        if (vendas.isEmpty())
+            return Collections.emptyList();
+
+        long totalVendas = vendas.size();
+
+        Map<String, List<Venda>> agrupar = vendas.stream()
+                .collect(Collectors.groupingBy(v -> v.getCliente().getCidade()));
+
+        return agrupar.entrySet().stream()
+                .map(entry -> {
+                    String nomeCidade = entry.getKey();
+                    long contagem = entry.getValue().size();
+
+                    double percentual = (contagem * 100.0) / totalVendas;
+
+                    return new DistribuicaoDTO(nomeCidade, contagem, percentual);
+
+                })
+                .toList();
+    }
+
+    public List<DistribuicaoDTO> calcularDistribuicaoPorFaixaEtaria(List<Venda> vendas) {
+        if (vendas.isEmpty())
+            return Collections.emptyList();
+
+        long totalVendas = vendas.size();
+
+        Map<String, List<Venda>> agrupar = vendas.stream()
+                .collect(Collectors.groupingBy(v -> classificarFaixaEtaria(v.getCliente().getIdade())));
+
+        return agrupar.entrySet().stream()
+                .map(entry -> {
+                    String faixaEtaria = entry.getKey();
+                    long contagem = entry.getValue().size();
+
+                    double percentual = (contagem * 100.0) / totalVendas;
+
+                    return new DistribuicaoDTO(faixaEtaria, contagem, percentual);
+
+                })
+                .toList();
+    }
+
+
+    public RelatorioDemograficoDTO relatorioDemografico(List<Venda> vendas) {
+        RelatorioDemograficoDTO relatorio = new RelatorioDemograficoDTO();
+
+        relatorio.setPorGenero(calcularDistribuicaoPorGenero(vendas));
+        relatorio.setPorCidade(calcularDistribuicaoPorCidade(vendas));
+        relatorio.setPorFaixaEtaria(calcularDistribuicaoPorFaixaEtaria(vendas));
+
+        return relatorio;
+    }
+
+    private String classificarFaixaEtaria(Integer idade) {
+        if (idade == null) return "Não informada";
+        if (idade < 20) return "Menor que 20 anos";
+        if (idade <= 30) return "20 a 30 anos";
+        if (idade <= 45) return "31 a 45 anos";
+        if (idade <= 60) return "46 a 60 anos";
+        return "Mais de 60 anos";
     }
 }
