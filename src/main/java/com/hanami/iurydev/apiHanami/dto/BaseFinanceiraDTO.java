@@ -12,9 +12,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class BaseFinanceiraDTO {
 
-    @JsonProperty("receita_liquida")
+    @JsonProperty("Receita_liquida")
     private BigDecimal receitaLiquida;
 
-    @JsonProperty("lucro_bruto")
+    @JsonProperty("Lucro_bruto")
     private BigDecimal lucroBruto;
 }

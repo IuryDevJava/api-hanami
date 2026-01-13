@@ -1,9 +1,6 @@
 package com.hanami.iurydev.apiHanami.controller;
 
-import com.hanami.iurydev.apiHanami.dto.MetricaFinanceiraDTO;
-import com.hanami.iurydev.apiHanami.dto.ProdutoAnalysisDTO;
-import com.hanami.iurydev.apiHanami.dto.RelatorioFinanceiroDTO;
-import com.hanami.iurydev.apiHanami.dto.UploadDTO;
+import com.hanami.iurydev.apiHanami.dto.*;
 import com.hanami.iurydev.apiHanami.entity.Venda;
 import com.hanami.iurydev.apiHanami.repository.VendaRepository;
 import com.hanami.iurydev.apiHanami.service.ReadFileService;
@@ -17,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/vendas")
@@ -74,9 +73,31 @@ public class VendaController {
     }
 
     @GetMapping("/reports/financial-metrics")
-    public ResponseEntity<MetricaFinanceiraDTO> getFinancialMetrics(){
+    public ResponseEntity<MetricaFinanceiraDTO> getFinancialMetrics() {
         List<Venda> vendas = vendaRepository.findAll();
         MetricaFinanceiraDTO metricas = vendaCalcularService.calculaMetricas(vendas);
         return ResponseEntity.ok(metricas);
+    }
+
+    @GetMapping("/reports/regional-performance")
+    public ResponseEntity<Map<String, MetricasRegiaoDTO>> getRegionalPerformance() {
+        List<Venda> vendas = vendaRepository.findByProcessadoSucessoTrue();
+        List<MetricasRegiaoDTO> lista = vendaCalcularService.calcularMetricasPorRegiao(vendas);
+
+        Map<String, MetricasRegiaoDTO> mapa = lista.stream()
+                .collect(Collectors.toMap(
+                        MetricasRegiaoDTO::getRegiao,
+                        dto -> dto
+                ));
+
+        return ResponseEntity.ok(mapa);
+    }
+
+    @GetMapping("/reports/customer-profile")
+    public ResponseEntity<RelatorioDemograficoDTO> getCustomerProfile() {
+        List<Venda> vendasSucesso = vendaRepository.findByProcessadoSucessoTrue();
+        RelatorioDemograficoDTO relatorio = vendaCalcularService.relatorioDemografico(vendasSucesso);
+
+        return ResponseEntity.ok(relatorio);
     }
 }

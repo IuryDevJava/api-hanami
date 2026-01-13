@@ -64,7 +64,7 @@ public class VendaDTO {
     private String produtoId;
 
     @NotBlank(message = "Nome do produto é obrigatório")
-    @JsonProperty("nome_produto")
+    @JsonProperty("Nome_produto")
     private String nomeProduto;
 
     private String categoria;
@@ -75,7 +75,7 @@ public class VendaDTO {
     private Double precoUnitario;
 
     @Min(value = 1, message = "Quantidade deve ser pelo menos 1")
-    @JsonProperty("quantidade_vendida")
+    @JsonProperty("Quantidade_vendida")
     private Integer quantidade;
 
     @DecimalMin(value = "15.0", message = "Margem de lucro abaixo do permitido (15%)")

@@ -200,8 +200,8 @@ src/main/java/com/hanami/iurydev/apiHanami
 ##### Retornado quando o arquivo é processado de forma correta e contêm registros validados
 ```json
    {
-  "status": "sucesso",
-  "linhas_processadas": 10000
+  "Status": "sucesso",
+  "Linhas_processadas": 10000
    }
 ```
 
@@ -211,8 +211,8 @@ src/main/java/com/hanami/iurydev/apiHanami
 ##### Retornado quando o arquivo é válido, mas não há novas vendas para persistir (ex: dados duplicados)
 ```json
    {
-  "status": "Aviso: Nenhuma nova linha processada",
-  "linhas_processadas": 0
+  "Status": "Aviso: Nenhuma nova linha processada",
+  "Linhas_processadas": 0
    }
 ```
 
@@ -222,8 +222,8 @@ src/main/java/com/hanami/iurydev/apiHanami
 ##### Retornado quando o parâmetro file não é enviado ou está vazio
 ```json
    {
-  "status": "erro",
-  "linhas_processadas": 0
+  "Status": "erro",
+  "Linhas_processadas": 0
    }
 ```
 
@@ -233,8 +233,8 @@ src/main/java/com/hanami/iurydev/apiHanami
 ##### Retornado quando o arquivo não possui colunas obrigatórias.
 ```json
    {
-  "status": "Coluna obrigatória ausente: id_transacao",
-  "linhas_processadas": 0
+  "Status": "Coluna obrigatória ausente: id_transacao",
+  "Linhas_processadas": 0
    }
 ```
 
@@ -244,12 +244,12 @@ src/main/java/com/hanami/iurydev/apiHanami
 ##### {{base_url}}/vendas/reports/sales-summary - Retorna total de vendas e a média por transação.
 ```json
    {
-  "receita_liquida": 5243176617.89,
-  "lucro_bruto": 3099751358.11,
-  "total_vendas": 8342927976.00,
-  "media_por_transacao": 928849.70,
-  "custo_total": 5243176617.89,
-  "numero_transacoes": 8982
+  "Receita_liquida": 5243176617.89,
+  "Lucro_bruto": 3099751358.11,
+  "Total_vendas": 8342927976.00,
+  "Media_por_transacao": 928849.70,
+  "Custo_total": 5243176617.89,
+  "Numero_transacoes": 8982
    }
 ```
 
@@ -259,19 +259,19 @@ src/main/java/com/hanami/iurydev/apiHanami
 ```json
    [
   {
-    "nome_produto": "Carregador Wireless",
-    "quatidade_vendida": 1006,
-    "total_arrecadado": 288235871.00
+    "Nome_produto": "Carregador Wireless",
+    "Quatidade_vendida": 1006,
+    "Total_arrecadado": 288235871.00
   },
   {
-    "nome_produto": "iPhone 15",
-    "quatidade_vendida": 787,
-    "total_arrecadado": 246201201.00
+    "Nome_produto": "iPhone 15",
+    "Quatidade_vendida": 787,
+    "Total_arrecadado": 246201201.00
   },
   {
-    "nome_produto": "Apple Watch",
-    "quatidade_vendida": 858,
-    "total_arrecadado": 249837283.00
+    "Nome_produto": "Apple Watch",
+    "Quatidade_vendida": 858,
+    "Total_arrecadado": 249837283.00
   }
   ]
 ```
@@ -282,19 +282,19 @@ src/main/java/com/hanami/iurydev/apiHanami
 ```json
    [
   {
-    "nome_produto": "Cabo USB-C",
-    "quatidade_vendida": 1061,
-    "total_arrecadado": 339386041.00
+    "Nome_produto": "Cabo USB-C",
+    "Quatidade_vendida": 1061,
+    "Total_arrecadado": 339386041.00
   },
   {
-    "nome_produto": "Webcam HD",
-    "quatidade_vendida": 1026,
-    "total_arrecadado": 319378902.00
+    "Nome_produto": "Webcam HD",
+    "Quatidade_vendida": 1026,
+    "Total_arrecadado": 319378902.00
   },
   {
-    "nome_produto": "Carregador Wireless",
-    "quatidade_vendida": 1006,
-    "total_arrecadado": 288235871.00
+    "Nome_produto": "Carregador Wireless",
+    "Quatidade_vendida": 1006,
+    "Total_arrecadado": 288235871.00
   }
   ]
 ```
@@ -305,19 +305,19 @@ src/main/java/com/hanami/iurydev/apiHanami
 ```json
    [
   {
-    "nome_produto": "Cabo USB-C",
-    "quatidade_vendida": 1061,
-    "total_arrecadado": 339386041.00
+    "Nome_produto": "Cabo USB-C",
+    "Quatidade_vendida": 1061,
+    "Total_arrecadado": 339386041.00
   },
   {
-    "nome_produto": "Webcam HD",
-    "quatidade_vendida": 1026,
-    "total_arrecadado": 319378902.00
+    "Nome_produto": "Webcam HD",
+    "Quatidade_vendida": 1026,
+    "Total_arrecadado": 319378902.00
   },
   {
-    "nome_produto": "Chromecast",
-    "quatidade_vendida": 934,
-    "total_arrecadado": 294529780.00
+    "Nome_produto": "Chromecast",
+    "Quatidade_vendida": 934,
+    "Total_arrecadado": 294529780.00
   }
   ]
 ```
@@ -327,9 +327,9 @@ src/main/java/com/hanami/iurydev/apiHanami
 ##### {{base_url}}/vendas/reports/financial-metrics - Retorna um JSON com lucro_bruto, receita_liquida e custo_total.
 ```json
    {
-  "receita_liquida": 5243176617.89,
-  "lucro_bruto": 3099751358.11,
-  "custo_total": 5243176617.89
+  "Receita_liquida": 5243176617.89,
+  "Lucro_bruto": 3099751358.11,
+  "Custo_total": 5243176617.89
    }
 ```
 

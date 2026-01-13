@@ -10,8 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UploadDTO {
 
+    @JsonProperty("Status")
     private String status;
 
-    @JsonProperty("linhas_processadas")
+    @JsonProperty("Linhas_processadas")
     private Integer linhasProcessadas;
 }

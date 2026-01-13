@@ -8,16 +8,16 @@ import java.math.BigDecimal;
 @Data
 public class RelatorioFinanceiroDTO extends BaseFinanceiraDTO {
 
-    @JsonProperty("total_vendas")
+    @JsonProperty("Total_vendas")
     private BigDecimal totalVendas;
 
-    @JsonProperty("media_por_transacao")
+    @JsonProperty("Media_por_transacao")
     private BigDecimal mediaPorTransacao;
 
-    @JsonProperty("custo_total")
+    @JsonProperty("Custo_total")
     private BigDecimal custoTotal;
 
-    @JsonProperty("numero_transacoes")
+    @JsonProperty("Numero_transacoes")
     private Long numeroTransacoes;
 
     public RelatorioFinanceiroDTO(BigDecimal receitaLiquida, BigDecimal lucroBruto, BigDecimal totalVendas, BigDecimal mediaPorTransacao, BigDecimal custoTotal, Long numeroTransacoes) {

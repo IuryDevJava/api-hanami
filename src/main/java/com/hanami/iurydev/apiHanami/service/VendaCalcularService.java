@@ -146,7 +146,7 @@ public class VendaCalcularService {
                     String nomeGenero = (entry.getKey() != null) ? entry.getKey().name() : "Não informado";
                     long contagem = entry.getValue().size();
 
-                    double percentual = (contagem * 100.0) / totalVendas;
+                    double percentual = Math.round((contagem * 100.0) / totalVendas * 100.0) / 100.0;
 
                     return new DistribuicaoDTO(nomeGenero, contagem, percentual);
 
@@ -168,7 +168,7 @@ public class VendaCalcularService {
                     String nomeCidade = entry.getKey();
                     long contagem = entry.getValue().size();
 
-                    double percentual = (contagem * 100.0) / totalVendas;
+                    double percentual = Math.round((contagem * 100.0) / totalVendas * 100.0) / 100.0;
 
                     return new DistribuicaoDTO(nomeCidade, contagem, percentual);
 
@@ -190,7 +190,7 @@ public class VendaCalcularService {
                     String faixaEtaria = entry.getKey();
                     long contagem = entry.getValue().size();
 
-                    double percentual = (contagem * 100.0) / totalVendas;
+                    double percentual = Math.round((contagem * 100.0) / totalVendas * 100.0) / 100.0;
 
                     return new DistribuicaoDTO(faixaEtaria, contagem, percentual);
 
@@ -202,9 +202,9 @@ public class VendaCalcularService {
     public RelatorioDemograficoDTO relatorioDemografico(List<Venda> vendas) {
         RelatorioDemograficoDTO relatorio = new RelatorioDemograficoDTO();
 
-        relatorio.setPorGenero(calcularDistribuicaoPorGenero(vendas));
-        relatorio.setPorCidade(calcularDistribuicaoPorCidade(vendas));
-        relatorio.setPorFaixaEtaria(calcularDistribuicaoPorFaixaEtaria(vendas));
+        relatorio.setGenero(calcularDistribuicaoPorGenero(vendas));
+        relatorio.setCidade(calcularDistribuicaoPorCidade(vendas));
+        relatorio.setFaixaEtaria(calcularDistribuicaoPorFaixaEtaria(vendas));
 
         return relatorio;
     }

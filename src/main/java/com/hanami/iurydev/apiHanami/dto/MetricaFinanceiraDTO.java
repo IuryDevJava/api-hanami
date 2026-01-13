@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Data
 public class MetricaFinanceiraDTO extends BaseFinanceiraDTO {
 
-    @JsonProperty("custo_total")
+    @JsonProperty("Custo_total")
     private BigDecimal custoTotal;
 
     public MetricaFinanceiraDTO(BigDecimal receitaLiquida, BigDecimal lucroBruto, BigDecimal custoTotal) {

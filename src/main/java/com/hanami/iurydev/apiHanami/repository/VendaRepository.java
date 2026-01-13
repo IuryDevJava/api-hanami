@@ -23,6 +23,8 @@ public interface VendaRepository extends JpaRepository<Venda, Long> {
 
     List<Venda> findByLogistica_Regiao(Regiao regiao);
 
+    List<Venda> findByProcessadoSucessoTrue();
+
     List<Venda> findByCliente_Estado(String estado);
 
     @Query("SELECT v.idTransacao FROM Venda v WHERE v.idTransacao IN :ids")

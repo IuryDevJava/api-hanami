@@ -10,12 +10,12 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ProdutoAnalysisDTO {
 
-    @JsonProperty("nome_produto")
+    @JsonProperty("Nome_produto")
     private String nomeProduto;
 
-    @JsonProperty("quatidade_vendida")
+    @JsonProperty("Quatidade_vendida")
     private Integer quantidadeVendida;
 
-    @JsonProperty("total_arrecadado")
+    @JsonProperty("Total_arrecadado")
     private BigDecimal totalArrecadado;
 }
