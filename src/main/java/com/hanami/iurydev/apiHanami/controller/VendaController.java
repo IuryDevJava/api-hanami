@@ -5,13 +5,16 @@ import com.hanami.iurydev.apiHanami.entity.Venda;
 import com.hanami.iurydev.apiHanami.repository.VendaRepository;
 import com.hanami.iurydev.apiHanami.service.ReadFileService;
 import com.hanami.iurydev.apiHanami.service.VendaCalcularService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -100,4 +103,40 @@ public class VendaController {
 
         return ResponseEntity.ok(relatorio);
     }
+
+    @GetMapping("/reports/download")
+    public ResponseEntity<byte[]> downloadRelatorio(@RequestParam String format) {
+        if (!format.equalsIgnoreCase("pdf") && !format.equalsIgnoreCase("json")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<Venda> vendas = vendaRepository.findByProcessadoSucessoTrue();
+
+        if (format.equalsIgnoreCase("json")) {
+            return downloadJson(vendas);
+        }
+
+        return downloadPdf(vendas);
+
+    }
+
+    private ResponseEntity<byte[]> downloadJson(List<Venda> vendas) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(vendas);
+            byte[] dados = json.getBytes();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"report.json\"")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(dados);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    private ResponseEntity<byte[]> downloadPdf(List<Venda> vendas) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    }
+
 }
