@@ -5,9 +5,18 @@ import com.hanami.iurydev.apiHanami.entity.Venda;
 import com.hanami.iurydev.apiHanami.repository.VendaRepository;
 import com.hanami.iurydev.apiHanami.service.ReadFileService;
 import com.hanami.iurydev.apiHanami.service.VendaCalcularService;
-import jakarta.validation.Valid;
+
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.PdfPTable;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.category.DefaultCategoryDataset;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +25,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.ObjectMapper;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -115,7 +127,6 @@ public class VendaController {
         if (format.equalsIgnoreCase("json")) {
             return downloadJson(vendas);
         }
-
         return downloadPdf(vendas);
 
     }
@@ -136,7 +147,64 @@ public class VendaController {
     }
 
     private ResponseEntity<byte[]> downloadPdf(List<Venda> vendas) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            Document documento = new Document(PageSize.A4);
+            PdfWriter.getInstance(documento, outputStream);
+            documento.open();
+
+            Font fonteTitulo = FontFactory.getFont(FontFactory.HELVETICA, 14, Font.NORMAL);
+            documento.add(new Paragraph("Relatório", fonteTitulo));
+            documento.add(new Paragraph(" "));
+
+            PdfPTable tabela = new PdfPTable(3);
+            tabela.addCell("ID Transação");
+            tabela.addCell("Cliente");
+            tabela.addCell("Valor Total");
+
+            for (Venda v : vendas) {
+                tabela.addCell(v.getIdTransacao());
+                tabela.addCell(v.getCliente().getNomeCliente());
+                tabela.addCell("R$ " + v.getValorFinal());
+            }
+
+            documento.add(tabela);
+
+            documento.add(new Paragraph(" ")); // Espaço em branco
+            documento.add(new Paragraph("Desempenho por Região", fonteTitulo));
+
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+            Map<String, Double> vendasPorRegiao = vendas.stream()
+                    .collect(Collectors.groupingBy(
+                            venda -> venda.getCliente().getEstado(),
+                            Collectors.summingDouble(venda -> venda.getValorFinal().doubleValue())
+                    ));
+
+            vendasPorRegiao.forEach((regiao, total) -> {
+                dataset.addValue(total, "Vendas", regiao);
+            });
+
+            JFreeChart grafico = ChartFactory.createBarChart(
+                    "Vendas por Região", "Região", "Total (R$)",
+                    dataset, PlotOrientation.VERTICAL, false, true, false
+            );
+
+            int largura = 500;
+            int altura = 300;
+            BufferedImage bufferedImage = grafico.createBufferedImage(largura, altura);
+            com.lowagie.text.Image imagemGrafico = com.lowagie.text.Image.getInstance(bufferedImage, null);
+            imagemGrafico.setAlignment(Element.ALIGN_CENTER);
+
+            documento.add(imagemGrafico);
+            documento.close();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"report.pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(outputStream.toByteArray());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
 }
