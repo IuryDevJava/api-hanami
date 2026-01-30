@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Data
 public class Cliente {
 
-    @Column(name = "cliente_id")
+    @Column(name = "id_cliente")
     private String clienteId;
 
     @Column(name = "nome_cliente")

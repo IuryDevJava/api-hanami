@@ -211,7 +211,7 @@ public class VendaCalcularService {
 
     private String classificarFaixaEtaria(Integer idade) {
         if (idade == null) return "Não informada";
-        if (idade < 20) return "Menor que 20 anos";
+        if (idade < 20) return "Menos de 20 anos";
         if (idade <= 30) return "20 a 30 anos";
         if (idade <= 45) return "31 a 45 anos";
         if (idade <= 60) return "46 a 60 anos";

@@ -22,6 +22,6 @@ public class Logistica {
     @Column(name = "tempo_entrega_dias")
     private Integer tempoEntregaDias;
 
-    @Column(name = "vendedor_id")
+    @Column(name = "id_vendedor")
     private String vendedorId;
 }

@@ -1,6 +1,7 @@
 package com.hanami.iurydev.apiHanami.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,9 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UploadDTO {
 
-    @JsonProperty("Status")
+    @Schema(example = "sucesso")
     private String status;
 
-    @JsonProperty("Linhas_processadas")
+    @Schema(example = "10000")
+    @JsonProperty("linhas_processadas")
     private Integer linhasProcessadas;
 }

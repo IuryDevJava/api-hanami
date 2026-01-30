@@ -1,6 +1,7 @@
 package com.hanami.iurydev.apiHanami.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.List;
@@ -8,12 +9,12 @@ import java.util.List;
 @Data
 public class RelatorioDemograficoDTO {
 
-    @JsonProperty("Genero")
+    @JsonProperty("genero")
     private List<DistribuicaoDTO> genero;
 
-    @JsonProperty("Faixa_etaria")
+    @JsonProperty("faixa_etaria")
     private List<DistribuicaoDTO> faixaEtaria;
 
-    @JsonProperty("Cidade")
+    @JsonProperty("cidade")
     private List<DistribuicaoDTO> cidade;
 }

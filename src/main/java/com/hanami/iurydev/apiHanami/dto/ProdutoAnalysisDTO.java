@@ -1,6 +1,7 @@
 package com.hanami.iurydev.apiHanami.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -10,12 +11,15 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ProdutoAnalysisDTO {
 
-    @JsonProperty("Nome_produto")
+    @Schema(example = "Carregador Wireless")
+    @JsonProperty("nome_produto")
     private String nomeProduto;
 
-    @JsonProperty("Quatidade_vendida")
+    @Schema(example = "1006")
+    @JsonProperty("quatidade_vendida")
     private Integer quantidadeVendida;
 
-    @JsonProperty("Total_arrecadado")
+    @Schema(example = "288235871.00")
+    @JsonProperty("total_arrecadado")
     private BigDecimal totalArrecadado;
 }

@@ -10,6 +10,10 @@ import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.PdfPTable;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,11 +31,11 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Tag(name = "Projeto Hanami", description = "API de Análise de Dados")
 @RestController
 @RequestMapping("/vendas")
 @RequiredArgsConstructor
@@ -42,6 +46,10 @@ public class VendaController {
     private final VendaCalcularService vendaCalcularService;
     private final VendaRepository vendaRepository;
 
+    @Operation(
+            summary = "Upload",
+            description = "Faz o upload de arquivo CSV/XLSX"
+    )
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadDTO> uploadFile(@RequestParam(value = "file", required = false) MultipartFile file) {
 
@@ -73,20 +81,33 @@ public class VendaController {
         }
     }
 
+    @Operation(
+            summary = "Relatório de Vendas",
+            description = "Retorna um JSON com o receita_liquida, lucro_bruto, total_vendas, media_por_transacao, custo_total, numero_transacoes"
+    )
     @GetMapping("/reports/sales-summary")
     public ResponseEntity<RelatorioFinanceiroDTO> getSalesSumary() {
         List<Venda> vendas = vendaRepository.findAll();
         return ResponseEntity.ok(vendaCalcularService.calculaFinanceiro(vendas));
     }
 
+    @Operation(
+            summary = "Relatório de Produtos",
+            description = "Retorna um JSON com uma lista de produtos"
+    )
     @GetMapping("/reports/product-analysis")
     public ResponseEntity<List<ProdutoAnalysisDTO>> getProductAnalisys(
+            @Parameter(description = "Critério de ordenação", example = "nome", schema = @Schema(allowableValues = {"nome", "preco", "quantidade"}))
             @RequestParam(value = "sort_by", required = false) String sortBy) {
         List<Venda> vendas = vendaRepository.findAll();
         List<ProdutoAnalysisDTO> analise = vendaCalcularService.analisarProdutos(vendas, sortBy);
         return ResponseEntity.ok(analise);
     }
 
+    @Operation(
+            summary = "Métricas Financeiras",
+            description = "Retorna um JSON com lucro_bruto, receita_liquida e custo_total calculados"
+    )
     @GetMapping("/reports/financial-metrics")
     public ResponseEntity<MetricaFinanceiraDTO> getFinancialMetrics() {
         List<Venda> vendas = vendaRepository.findAll();
@@ -94,6 +115,10 @@ public class VendaController {
         return ResponseEntity.ok(metricas);
     }
 
+    @Operation(
+            summary = "Clientes e Região",
+            description = "Retorna um JSON com cada região como chave e suas métricas"
+    )
     @GetMapping("/reports/regional-performance")
     public ResponseEntity<Map<String, MetricasRegiaoDTO>> getRegionalPerformance() {
         List<Venda> vendas = vendaRepository.findByProcessadoSucessoTrue();
@@ -108,6 +133,10 @@ public class VendaController {
         return ResponseEntity.ok(mapa);
     }
 
+    @Operation(
+            summary = "Distribuição Demográfica",
+            description = "Retorna um JSON com as distribuições demográficas"
+    )
     @GetMapping("/reports/customer-profile")
     public ResponseEntity<RelatorioDemograficoDTO> getCustomerProfile() {
         List<Venda> vendasSucesso = vendaRepository.findByProcessadoSucessoTrue();
@@ -116,8 +145,14 @@ public class VendaController {
         return ResponseEntity.ok(relatorio);
     }
 
+    @Operation(
+            summary = "Relatórios Exportáveis (JSON/PDF)",
+            description = "Retorna um arquivo report.json ou report.pdf para download"
+    )
     @GetMapping("/reports/download")
-    public ResponseEntity<byte[]> downloadRelatorio(@RequestParam String format) {
+    public ResponseEntity<byte[]> downloadRelatorio(
+            @Parameter(description = "Formato do arquivo", required = true, schema = @Schema(allowableValues = {"json", "pdf"}))
+            @RequestParam String format) {
         if (!format.equalsIgnoreCase("pdf") && !format.equalsIgnoreCase("json")) {
             return ResponseEntity.badRequest().build();
         }
