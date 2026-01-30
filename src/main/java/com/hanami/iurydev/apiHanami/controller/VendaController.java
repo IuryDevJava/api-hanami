@@ -31,6 +31,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -83,11 +84,25 @@ public class VendaController {
 
     @Operation(
             summary = "Relatório de Vendas",
-            description = "Retorna um JSON com o receita_liquida, lucro_bruto, total_vendas, media_por_transacao, custo_total, numero_transacoes"
+            description = "Retorna o resumo financeiro consolidado, com filtro opcional por período."
     )
     @GetMapping("/reports/sales-summary")
-    public ResponseEntity<RelatorioFinanceiroDTO> getSalesSumary() {
-        List<Venda> vendas = vendaRepository.findAll();
+    public ResponseEntity<RelatorioFinanceiroDTO> getSalesSumary(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+
+        List<Venda> vendas;
+
+        if (startDate != null && endDate != null) {
+            // Conversão obrigatória: String -> LocalDate
+            LocalDate dataInicio = LocalDate.parse(startDate);
+            LocalDate dataFim = LocalDate.parse(endDate);
+
+            vendas = vendaRepository.findByDataVendaBetween(dataInicio, dataFim);
+        } else {
+            vendas = vendaRepository.findAll();
+        }
+
         return ResponseEntity.ok(vendaCalcularService.calculaFinanceiro(vendas));
     }
 
@@ -117,18 +132,35 @@ public class VendaController {
 
     @Operation(
             summary = "Clientes e Região",
-            description = "Retorna um JSON com cada região como chave e suas métricas"
+            description = "Retorna métricas agrupadas por região, com filtro opcional por estado."
     )
     @GetMapping("/reports/regional-performance")
-    public ResponseEntity<Map<String, MetricasRegiaoDTO>> getRegionalPerformance() {
-        List<Venda> vendas = vendaRepository.findByProcessadoSucessoTrue();
+    public ResponseEntity<Map<String, MetricasRegiaoDTO>> getRegionalPerformance(
+            @RequestParam(required = false) String estado) {
+
+        List<Venda> vendas;
+        if(estado != null && !estado.trim().isEmpty()) {
+            vendas = vendaRepository.findByProcessadoSucessoTrueAndCliente_Estado(estado.toUpperCase());
+        } else {
+            vendas = vendaRepository.findByProcessadoSucessoTrue();
+        }
+
         List<MetricasRegiaoDTO> lista = vendaCalcularService.calcularMetricasPorRegiao(vendas);
 
+        // FILTRO ADICIONAL: Se o usuário pediu um estado, garantimos que o mapa
+        // contenha apenas a região daquele estado.
         Map<String, MetricasRegiaoDTO> mapa = lista.stream()
                 .collect(Collectors.toMap(
                         MetricasRegiaoDTO::getRegiao,
                         dto -> dto
                 ));
+
+        // Se houver filtro de estado, podemos filtrar o mapa final também
+        if (estado != null && !estado.trim().isEmpty() && !vendas.isEmpty()) {
+            // Pega a região do primeiro item da lista filtrada (já que todos são do mesmo estado)
+            String regiaoFiltrada = vendas.get(0).getLogistica().getRegiao().toString();
+            return ResponseEntity.ok(Map.of(regiaoFiltrada, mapa.get(regiaoFiltrada)));
+        }
 
         return ResponseEntity.ok(mapa);
     }
