@@ -8,13 +8,13 @@ Este projeto faz parte do **Projeto Hanami**, uma iniciativa de impacto social v
 ## 📌 Visão Geral do Projeto
 
 - **Prazo total:** 40 dias
-- **Metodologia:** Desenvolvimento incremental por sprints
-- **Sprint atual:** Sprint 1 – Fundação e Setup do Projeto
-- **Status atual:** Finalizada
+- **Metodologia:** Desenvolvimento incremental por sprints 1 e 2
+- **Status atual:** Finalizado
 
 ### 🎯 Objetivo Geral
 Desenvolver uma API robusta capaz de:
 - Receber arquivos CSV/XLSX
+- Usar um arquivo CSV vendas_ficticias_10000_linhas
 - Processar dados de vendas
 - Armazenar informações em banco de dados
 - Gerar relatórios analíticos
@@ -31,15 +31,13 @@ Desenvolver uma API robusta capaz de:
 | Início do backend | Parser de dados e endpoint de upload |
 | Persistência | Entidades e repositórios iniciais |
 
-### Sprint 2 — Consolidação e Deploy *(planejada)*
-| Foco Principal | Entregas |
-|---------------|---------|
+### Sprint 2 — Conclusão do desenvolvimento e refinamento *(planejada)*
+| Foco Principal                   | Entregas |
+|----------------------------------|---------|
 | Finalização da lógica de análise | Algoritmos completos |
-| Relatórios | Geração de relatórios PDF |
-| Documentação | README final e instruções de uso |
-| Deploy | Ambiente produtivo |
-
-> 🔎 **Observação:** A Sprint 2 será detalhada após a conclusão da Sprint 1.
+| Relatórios                       | Geração de relatórios PDF |
+| Documentação                     | README final e instruções de uso |
+| Docker                           | Ambiente produtivo |
 
 ---
 
@@ -49,6 +47,7 @@ Desenvolver uma API robusta capaz de:
 - **Spring Boot**
 - **MySQL**
 - **Maven**
+- **Docker**
 
 ---
 
@@ -70,7 +69,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ## Configuração para ambiente de desenvolvimento e produção
 ### Vá em resources e crie um arquivo application-dev.properties adicione:
-```
+```properties
     spring.datasource.url=jdbc:mysql://localhost:3306/hanamiapidb
     spring.datasource.username=seu-login-mysql
     spring.datasource.password=sua-senha-mysql
@@ -91,7 +90,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 ``` 
 
 ### Na mesma pasta crie um arquivo application-prod.properties(para ambiente de produção) adicione:
-``` 
+```properties
     spring.datasource.url=jdbc:mysql://${MYSQLHOST}:${MYSQLPORT}/${MYSQLDATABASE}
     spring.datasource.username=${MYSQLUSER}
     spring.datasource.password=${MYSQLPASSWORD}
@@ -106,7 +105,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 ```
 
 ### No application.properties adicione:
-```
+```properties
     spring.profiles.active=dev
 ```
 
@@ -114,8 +113,9 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ### ▶️ Como Rodar o Projeto
 #### Pré-requisitos
-- Java 17
+- Java 17 (JDK)
 - MySQL
+- Docker
 
 **Passo a passo**
 1. Clone o repositório
@@ -241,7 +241,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 ---
 
 ### Métodos GET 
-##### {{base_url}}/vendas/reports/sales-summary - Retorna total de vendas e a média por transação.
+##### http://localhost:8080/vendas/reports/sales-summary - Retorna total de vendas e a média por transação.
 ```json
    {
   "Receita_liquida": 5243176617.89,
@@ -255,7 +255,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ---
 
-##### {{base_url}}/vendas/reports/product-analysis - Retorna uma lista de produtos sem ordenação.
+##### http://localhost:8080/vendas/reports/product-analysis - Retorna uma lista de produtos sem ordenação.
 ```json
    [
   {
@@ -278,7 +278,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ---
 
-##### {{base_url}}/vendas/reports/product-analysis?sort_by=quantidade - Retorna os produtos de forma ordenada e por quantidade.
+##### http://localhost:8080/vendas/reports/product-analysis?sort_by=quantidade - Retorna os produtos de forma ordenada e por quantidade.
 ```json
    [
   {
@@ -301,7 +301,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ---
 
-##### {{base_url}}/vendas/reports/product-analysis?sort_by=valor - Retorna os produtos de forma ordenada e por valor.
+##### http://localhost:8080/vendas/reports/product-analysis?sort_by=valor - Retorna os produtos de forma ordenada e por valor.
 ```json
    [
   {
@@ -324,7 +324,7 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ---
 
-##### {{base_url}}/vendas/reports/financial-metrics - Retorna um JSON com lucro_bruto, receita_liquida e custo_total.
+##### http://localhost:8080/vendas/reports/financial-metrics - Retorna um JSON com lucro_bruto, receita_liquida e custo_total.
 ```json
    {
   "Receita_liquida": 5243176617.89,
@@ -332,6 +332,22 @@ src/main/java/com/hanami/iurydev/apiHanami
   "Custo_total": 5243176617.89
    }
 ```
+
+---
+
+##### http://localhost:8080/vendas/reports/regional-performance - Retorna um JSON com cada região como chave e suas métricas como valor.
+
+---
+
+##### http://localhost:8080/vendas/reports/customer-profile - Retorna um JSON com as distribuições demográficas.
+
+---
+
+##### http://localhost:8080/vendas/reports/download?format=json - Retorna um arquivo report.json e faz o download completo do arquivo com as métricas em formato JSON.
+
+---
+
+##### http://localhost:8080/vendas/reports/download?format=pdf - Retorna um arquivo report.pdf e faz o download com as métricas em tabela e um gráfico de barras de vendas por região.
 
 ---
 
@@ -386,7 +402,7 @@ src/main/java/com/hanami/iurydev/apiHanami
    GROUP BY processado_sucesso;
 ```
 
-#### Limpar tabela
+#### (Apenas para testes) Limpar tabela
 ```sql
    DROP TABLE hanamiapidb.vendas;
 ```
@@ -493,9 +509,252 @@ src/main/java/com/hanami/iurydev/apiHanami
 
 ---
 
-### Check-list Final de Fechamento da Sprint 1:
+### Documentação da API com Swagger/OpenAPI
+#### Dependência para usar a interface do Swagger
+```xml
+   <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>2.3.0</version>
+   </dependency>
+```
+
+---
+
+#### Adicione no arquivo application-dev.properties
+```properties
+   springdoc.swagger-ui.path=/docs
+```
+
+---
+
+#### Todos os endpoints terão um sumário e uma descrição, então adicione esse exemplo e mude de acordo com o endpoint e sua responsabilidade
+```annotation
+   @Operation(
+           summary = "Upload",
+           description = "Faz o upload de arquivo CSV/XLSX"
+   )
+```
+
+---
+
+### Os que possuem parâmetros de query como o sort_by e format são documentados
+#### No endpoit de analisar o produto que tem @GetMapping("/reports/product-analysis"), antes do @RequestParam adicione:
+```annotation
+   @Parameter(description = "Critério de ordenação", example = "nome", schema = @Schema(allowableValues = {"nome", "preco", "quantidade"}))
+```
+
+---
+
+#### No endpoit desenvolvido pra fazer o downloiad do relatório, que tem @GetMapping("/reports/download"), antes do @RequestParam adicione:
+```annotation
+   @Parameter(description = "Formato do arquivo", required = true, schema = @Schema(allowableValues = {"json", "pdf"}))
+```
+
+---
+
+### Implementação de Filtros via Query Methods
+***Os filtros abaixo utilizam Query Methods do Spring Data JPA,
+onde as consultas são derivadas automaticamente a partir do nome do método.***
+#### No VendaRepository adicione o método de query JPA do estado:
+```java
+   List<Venda> findByProcessadoSucessoTrueAndCliente_Estado(String estado);
+```
+#### No endpoint `/reports/regional-performance`, adicione um filtro opcional por sigla do estado (ex: SP):
+```java
+   @Operation(
+        summary = "Clientes e Região",
+        description = "Retorna métricas agrupadas por região, com filtro opcional por estado."
+   ) 
+   @GetMapping("/reports/regional-performance")
+   public ResponseEntity<Map<String, MetricasRegiaoDTO>> getRegionalPerformance(
+            @RequestParam(required = false) String estado) {
+    
+        List<Venda> vendas;
+        if(estado != null && !estado.trim().isEmpty()) {
+            vendas = vendaRepository.findByProcessadoSucessoTrueAndCliente_Estado(estado.toUpperCase());
+        } else {
+            vendas = vendaRepository.findByProcessadoSucessoTrue();
+        }
+    
+        List<MetricasRegiaoDTO> lista = vendaCalcularService.calcularMetricasPorRegiao(vendas);
+    
+        // FILTRO ADICIONAL: Se o usuário pediu um estado, garantimos que o mapa
+        // contenha apenas a região daquele estado.
+        Map<String, MetricasRegiaoDTO> mapa = lista.stream()
+                .collect(Collectors.toMap(
+                        MetricasRegiaoDTO::getRegiao,
+                        dto -> dto
+                ));
+    
+        // Se houver filtro de estado, podemos filtrar o mapa final também
+        if (estado != null && !estado.trim().isEmpty() && !vendas.isEmpty()) {
+            // Pega a região do primeiro item da lista filtrada (já que todos são do mesmo estado)
+            String regiaoFiltrada = vendas.get(0).getLogistica().getRegiao().toString();
+            return ResponseEntity.ok(Map.of(regiaoFiltrada, mapa.get(regiaoFiltrada)));
+        }
+    
+        return ResponseEntity.ok(mapa);
+   }
+```
+
+---
+
+#### No VendaRepository adicione o método de query JPA para filtrar vendas por intervalo de datas:
+```java
+   List<Venda> findByDataVendaBetween(LocalDate startDate, LocalDate endDate);
+```
+#### No endpoint `/reports/sales-summary` adicione filtros opcionais por data de início e data fim:
+```java
+   @Operation(
+        summary = "Relatório de Vendas",
+        description = "Retorna o resumo financeiro consolidado, com filtro opcional por período."
+   )
+   @GetMapping("/reports/sales-summary")
+   public ResponseEntity<RelatorioFinanceiroDTO> getSalesSumary(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+    
+        List<Venda> vendas;
+    
+        if (startDate != null && endDate != null) {
+            // Conversão obrigatória: String -> LocalDate
+            LocalDate dataInicio = LocalDate.parse(startDate);
+            LocalDate dataFim = LocalDate.parse(endDate);
+    
+            vendas = vendaRepository.findByDataVendaBetween(dataInicio, dataFim);
+        } else {
+            vendas = vendaRepository.findAll();
+        }
+    
+        return ResponseEntity.ok(vendaCalcularService.calculaFinanceiro(vendas));
+   }
+```
+
+---
+
+### Preparação para Deploy com Docker
+#### Empacotar a aplicação para facilitar a execução em qualquer ambiente
+**Limpa o projeto**
+```bash
+   mvn clean
+```
+
+---
+
+**Limpa o projeto e verifica se o código compila e se não tem erros de sintaxe**
+```bash
+   mvn clean compile
+```
+
+---
+
+**Limpa, compila e empacota a aplicação dentro de um arquivo .jar
+```bash
+   mvn clean package -DskipTests
+```
+
+---
+
+**Faça um teste e observe os logs para ver se está tudo certo**
+```bash
+   mvn test
+```
+
+---
+
+#### Crie um arquivo Dockerfile na raíz do projeto e adicione:
+```docker
+   FROM maven:3.9.6-eclipse-temurin-17 AS build
+   WORKDIR /app
+   COPY pom.xml .
+
+   RUN mvn dependency:go-offline
+   COPY src ./src
+
+   RUN mvn clean package -DskipTests
+
+   FROM eclipse-temurin:17-jre-alpine
+   WORKDIR /app
+
+   COPY --from=build /app/target/*.jar app.jar
+   EXPOSE 8080
+   ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+---
+
+#### Crie um arquivo docker-compose.yml na raíz do projeto e adicione:
+```yml
+   services:
+  db:
+    image: mysql:8.0
+    container_name: hanami-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: hanamiapidb
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+
+  app:
+    build: .
+    container_name: hanami-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/hanamiapidb?createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+```
+**Observação: Se quiser acessar o banco via Workbench/DBeaver enquanto o Docker roda, use a porta 3307**
+
+- *Nota: Para demonstração, as credenciais do banco estão no arquivo, mas em produção devem ser usadas em variáveis de ambiente.*
+
+---
+
+#### Rode esse comando para buildar o Dockerfile e criar uma imagem com o nome projeto-apihanami
+```bash
+   docker build -t projeto-apihanami .
+```
+
+---
+
+#### Lê o arquivo docker-compose.yml e inicia todos os serviços descritos nele
+```bash
+   docker compose up -d
+```
+
+#### Acesse a API via Swagger UI
+```text
+   http://localhost:8080/docs
+```
+
+#### Limpando o ambiente. Para parar os contêiners e remover os volumes, use:
+```bash
+   docker-compose down -v
+```
+
+---
+
+### Check-list completo do projeto:
+**[X] Upload: Os arquivos com a extensão .CSV e .XLSX estão sendo aceitos corretamente? (Sim)**
+
 **[X] Código: O projeto compila sem erros? (Sim)**
 
-**[X] Testes: Os endpoints no Postman batem com os resultados do SQL? (Sim)**
+**[X] Testes: Os endpoints no Postman e Swagger batem com os resultados do SQL? (Sim)**
 
 **[X] Documentação: O README reflete a realidade do código? (Sim)**
+
+**[X] Swagger/OpenAPI: Os endpoints estão documentados? (Sim)**
+
+**[X] Docker: A aplicação roda corretamente via Docker? (Sim)**
+
+**[X] Logs: Mensagens de sucesso e de erro foram registradas? (Sim)**
+
+**[X] Tratamento de Exceções: Se eu enviar um CSV corrompido ou com colunas erradas, a API retorna um erro claro (ex: 400 Bad Request) (Sim)**
+
+**[X] Validação na lógica de negócio: Filtros de data e ordenação funcionando via Query Param**
